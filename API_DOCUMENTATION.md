@@ -4,16 +4,10 @@
 
 Sistema de envio de mensagens WhatsApp com suporte a **múltiplas instâncias isoladas**. Cada instância possui seu próprio token único para autenticação.
 
-## Endpoints Disponíveis
+## Endpoint da API
 
-### Opção 1: Edge Function Direta (Recomendado)
 ```
-https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text
-```
-
-### Opção 2: Cloudflare Worker (Domínio Customizado)
-```
-https://api.evasend.com.br/whatsapp/send-text
+https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text
 ```
 
 ---
@@ -90,7 +84,7 @@ token: seu_instance_token
 
 ```bash
 curl --request POST \
-  --url https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text \
+  --url https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text \
   --header 'Content-Type: application/json' \
   --header 'token: seu_instance_token_aqui' \
   --data '{
@@ -102,7 +96,7 @@ curl --request POST \
 ### JavaScript (Fetch)
 
 ```javascript
-const response = await fetch('https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text', {
+const response = await fetch('https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -123,7 +117,7 @@ console.log(data);
 ```python
 import requests
 
-url = "https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text"
+url = "https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text"
 headers = {
     "Content-Type": "application/json",
     "token": "seu_instance_token_aqui"
@@ -141,7 +135,7 @@ print(response.json())
 
 ```php
 <?php
-$url = 'https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text';
+$url = 'https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text';
 $data = [
     'number' => '5511999999999',
     'text' => 'Olá! Como posso ajudar?'
@@ -172,7 +166,7 @@ echo $response;
 
 1. **Adicionar nó HTTP Request**
 2. **Configurar Method:** POST
-3. **Configurar URL:** `https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text`
+3. **Configurar URL:** `https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text`
 4. **Adicionar Authentication:**
    - Type: `Header Auth`
    - Name: `token`
@@ -220,7 +214,7 @@ Webhook → Set Variables → HTTP Request (WhatsApp) → Response
 ```
 
 **HTTP Request:**
-- URL: `https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text`
+- URL: `https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text`
 - Authentication: `WhatsApp Vendas` (selecione a credencial desejada)
 - Body:
 ```json
@@ -246,12 +240,12 @@ Cada instância WhatsApp possui:
 
 ```bash
 # Enviar via instância "Vendas"
-curl -X POST https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text \
+curl -X POST https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text \
   -H "token: abc123def456..." \
   -d '{"number":"5511999999999","text":"Mensagem da equipe de Vendas"}'
 
 # Enviar via instância "Suporte"
-curl -X POST https://agoyetuktxaknbonkwzz.supabase.co/functions/v1/send-text \
+curl -X POST https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text \
   -H "token: ghi789jkl012..." \
   -d '{"number":"5511999999999","text":"Mensagem da equipe de Suporte"}'
 ```
