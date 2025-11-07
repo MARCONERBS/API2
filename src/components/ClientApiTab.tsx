@@ -257,10 +257,176 @@ export default function ClientApiTab() {
         messageId: "3EB0123456789ABCDEF",
         timestamp: 1699564800
       }
+    },
+    'send-menu': {
+      title: 'Enviar menu interativo',
+      description: 'Envia menus interativos: botões, listas, enquetes ou carrossel.',
+      method: 'POST',
+      path: '/send/menu',
+      icon: Send,
+      color: 'purple',
+      features: [
+        'Botões interativos com ações (resposta, URL, chamada, copiar)',
+        'Listas organizadas em seções',
+        'Enquetes para votação',
+        'Carrossel de botões com imagens',
+        'Suporte a imagens nos botões'
+      ],
+      params: [
+        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
+        { name: 'type', type: 'string', required: true, description: 'Tipo: button, list, poll, carousel' },
+        { name: 'text', type: 'string', required: true, description: 'Texto principal da mensagem' },
+        { name: 'choices', type: 'array', required: true, description: 'Array de opções (formato varia por tipo)' },
+        { name: 'footerText', type: 'string', required: false, description: 'Texto do rodapé (opcional)' },
+        { name: 'listButton', type: 'string', required: false, description: 'Texto do botão principal (para listas)' },
+        { name: 'selectableCount', type: 'number', required: false, description: 'Número de opções selecionáveis (para enquetes)' },
+        { name: 'imageButton', type: 'string', required: false, description: 'URL da imagem para botões' }
+      ],
+      exampleRequest: {
+        number: "5511999999999",
+        type: "button",
+        text: "Como podemos ajudar?",
+        choices: [
+          "Suporte Técnico|suporte",
+          "Fazer Pedido|pedido",
+          "Nosso Site|https://exemplo.com"
+        ],
+        footerText: "Escolha uma das opções abaixo"
+      },
+      exampleResponse: {
+        success: true,
+        messageId: "3EB0123456789ABCDEF",
+        timestamp: 1699564800
+      }
+    },
+    'send-carousel': {
+      title: 'Enviar carrossel de mídia',
+      description: 'Envia um carrossel com imagens e botões interativos.',
+      method: 'POST',
+      path: '/send/carousel',
+      icon: Image,
+      color: 'indigo',
+      features: [
+        'Carrossel de cartões com imagens',
+        'Botões interativos por cartão',
+        'Tipos de botões: REPLY, URL, COPY, CALL',
+        'Múltiplos cartões em uma única mensagem'
+      ],
+      params: [
+        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
+        { name: 'text', type: 'string', required: true, description: 'Texto principal da mensagem' },
+        { name: 'carousel', type: 'array', required: true, description: 'Array de cartões do carrossel' }
+      ],
+      exampleRequest: {
+        number: "5511999999999",
+        text: "Nossos Produtos em Destaque",
+        carousel: [
+          {
+            text: "Smartphone XYZ\nO mais avançado smartphone",
+            image: "https://exemplo.com/produto1.jpg",
+            buttons: [
+              {
+                id: "SIM_COMPRAR_XYZ",
+                text: "Comprar Agora",
+                type: "REPLY"
+              },
+              {
+                id: "https://exemplo.com/xyz",
+                text: "Ver Detalhes",
+                type: "URL"
+              }
+            ]
+          }
+        ]
+      },
+      exampleResponse: {
+        success: true,
+        messageId: "3EB0123456789ABCDEF",
+        timestamp: 1699564800
+      }
+    },
+    'send-pix-button': {
+      title: 'Enviar botão PIX',
+      description: 'Envia um botão nativo do WhatsApp para pagamento PIX.',
+      method: 'POST',
+      path: '/send/pix-button',
+      icon: Send,
+      color: 'green',
+      features: [
+        'Botão nativo do WhatsApp',
+        'Suporte a diferentes tipos de chave PIX',
+        'Visualização do recebedor e chave',
+        'Abertura direta no app de pagamento'
+      ],
+      params: [
+        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
+        { name: 'pixType', type: 'string', required: true, description: 'Tipo: CPF, CNPJ, PHONE, EMAIL, EVP' },
+        { name: 'pixKey', type: 'string', required: true, description: 'Valor da chave PIX' },
+        { name: 'pixName', type: 'string', required: false, description: 'Nome do recebedor (padrão: "Pix")' }
+      ],
+      exampleRequest: {
+        number: "5511999999999",
+        pixType: "EVP",
+        pixKey: "123e4567-e89b-12d3-a456-426614174000",
+        pixName: "Loja Exemplo"
+      },
+      exampleResponse: {
+        success: true,
+        messageId: "3EB0123456789ABCDEF",
+        timestamp: 1699564800
+      }
+    },
+    'send-status': {
+      title: 'Enviar Stories (Status)',
+      description: 'Envia um story (status) com texto, imagem, vídeo ou áudio.',
+      method: 'POST',
+      path: '/send/status',
+      icon: Send,
+      color: 'orange',
+      features: [
+        'Texto com estilo e cor de fundo',
+        'Imagens com legenda opcional',
+        'Vídeos com thumbnail',
+        'Áudio normal ou mensagem de voz',
+        'Múltiplas cores e fontes disponíveis'
+      ],
+      params: [
+        { name: 'type', type: 'string', required: true, description: 'Tipo: text, image, video, audio' },
+        { name: 'text', type: 'string', required: false, description: 'Texto principal ou legenda' },
+        { name: 'background_color', type: 'number', required: false, description: 'Código da cor de fundo (1-19)' },
+        { name: 'font', type: 'number', required: false, description: 'Estilo da fonte (0-8, apenas para text)' },
+        { name: 'file', type: 'string', required: false, description: 'URL ou Base64 do arquivo (obrigatório para image/video/audio)' },
+        { name: 'thumbnail', type: 'string', required: false, description: 'URL ou Base64 da miniatura (opcional para vídeos)' },
+        { name: 'mimetype', type: 'string', required: false, description: 'MIME type do arquivo (opcional)' }
+      ],
+      exampleRequest: {
+        type: "text",
+        text: "Novidades chegando!",
+        background_color: 7,
+        font: 1
+      },
+      exampleResponse: {
+        Id: "ABCD1234",
+        status: "Pending",
+        messageTimestamp: 1672531200000
+      }
     }
   };
 
   const currentEndpoint = endpointData[selectedEndpoint];
+  
+  // Verificação de segurança para evitar erros
+  if (!currentEndpoint) {
+  return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">Endpoint não encontrado</p>
+          <p className="text-gray-600 mt-2">Por favor, selecione um endpoint válido.</p>
+        </div>
+      </div>
+    );
+  }
+  
   const IconComponent = currentEndpoint.icon;
 
   return (
@@ -271,7 +437,7 @@ export default function ClientApiTab() {
           <h3 className="text-xs font-semibold text-blue-100 mb-1 tracking-wider uppercase">Endpoints</h3>
           <div className="text-2xl font-bold text-white">6</div>
           <p className="text-xs text-blue-100 mt-0.5">Recursos disponíveis</p>
-        </div>
+          </div>
 
         <div className="p-3">
           {endpoints.map((group) => {
@@ -293,7 +459,7 @@ export default function ClientApiTab() {
                   <div className="flex items-center space-x-3">
                     <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     <span>{group.label}</span>
-                  </div>
+                    </div>
                   <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{group.count}</span>
                 </button>
 
@@ -333,10 +499,14 @@ export default function ClientApiTab() {
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-b border-indigo-500 px-5 py-3 shadow-xl">
           <div className="flex items-center space-x-2 mb-1.5">
             <span className={`px-2 py-0.5 rounded text-xs font-bold shadow-lg ${
-              currentEndpoint.color === 'cyan' ? 'bg-cyan-500 text-white' : 'bg-green-500 text-white'
+              currentEndpoint.color === 'cyan' ? 'bg-cyan-500 text-white' : 
+              currentEndpoint.color === 'green' ? 'bg-green-500 text-white' :
+              currentEndpoint.color === 'purple' ? 'bg-purple-500 text-white' :
+              currentEndpoint.color === 'indigo' ? 'bg-indigo-500 text-white' :
+              currentEndpoint.color === 'orange' ? 'bg-orange-500 text-white' : 'bg-gray-500 text-white'
             }`}>
               {currentEndpoint.method}
-            </span>
+                  </span>
             <h1 className="text-base font-bold text-white/90">{currentEndpoint.path}</h1>
           </div>
           <h2 className="text-xl font-bold text-white mb-1">{currentEndpoint.title}</h2>
@@ -371,25 +541,25 @@ export default function ClientApiTab() {
                       {instance.instance_token && instance.status === 'connected' && (
                         <div className="bg-slate-50 rounded-lg p-3 flex items-center space-x-2 border border-slate-200">
                           <code className="flex-1 text-xs text-slate-700 font-mono break-all">
-                            {instance.instance_token}
-                          </code>
-                          <button
-                            onClick={() => copyToClipboard(instance.instance_token!, `token-${instance.id}`)}
+                        {instance.instance_token}
+                      </code>
+                      <button
+                        onClick={() => copyToClipboard(instance.instance_token!, `token-${instance.id}`)}
                             className="p-1.5 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
-                          >
-                            {copiedEndpoint === `token-${instance.id}` ? (
-                              <Check className="w-4 h-4 text-green-600" />
-                            ) : (
+                      >
+                        {copiedEndpoint === `token-${instance.id}` ? (
+                          <Check className="w-4 h-4 text-green-600" />
+                        ) : (
                               <Copy className="w-4 h-4 text-slate-500" />
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        )}
+                      </button>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+      )}
 
             {/* Rate Limiting */}
             <div className="bg-white rounded-2xl border border-orange-200 overflow-hidden shadow-lg">
@@ -408,15 +578,15 @@ export default function ClientApiTab() {
                     <div className="text-xs text-slate-600 mb-1 font-medium">Limite por IP</div>
                     <div className="text-2xl font-bold text-orange-600">1.000</div>
                     <div className="text-xs text-slate-500">req/min</div>
-                  </div>
+              </div>
                   <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg p-3 text-center border border-orange-200">
                     <div className="text-xs text-slate-600 mb-1 font-medium">Limite por Token</div>
                     <div className="text-2xl font-bold text-orange-600">1.000</div>
                     <div className="text-xs text-slate-500">req/min</div>
-                  </div>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
             {/* Features */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-lg">
@@ -429,10 +599,10 @@ export default function ClientApiTab() {
                   </li>
                 ))}
               </ul>
-            </div>
+        </div>
 
             {/* Parameters */}
-            <div>
+          <div>
               <h3 className="text-lg font-bold text-slate-800 mb-4">Campos Comuns</h3>
               <div className="space-y-3">
                 {currentEndpoint.params.map((param) => (
@@ -447,31 +617,31 @@ export default function ClientApiTab() {
                           </span>
                         )}
                       </div>
-                    </div>
-                    <p className="text-sm text-slate-600">{param.description}</p>
-                  </div>
-                ))}
               </div>
+                    <p className="text-sm text-slate-600">{param.description}</p>
+              </div>
+                ))}
             </div>
+          </div>
 
             {/* Example Response */}
-            <div>
+          <div>
               <h3 className="text-lg font-bold text-slate-800 mb-4">Resposta de Exemplo</h3>
               <div className="bg-slate-900 rounded-xl p-5 border border-slate-700 relative shadow-lg">
-                <button
+              <button
                   onClick={() => copyToClipboard(JSON.stringify(currentEndpoint.exampleResponse, null, 2), 'response')}
                   className="absolute top-3 right-3 p-2 hover:bg-slate-800 rounded-lg transition-colors"
-                >
+              >
                   {copiedEndpoint === 'response' ? (
-                    <Check className="w-4 h-4 text-green-400" />
-                  ) : (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
                     <Copy className="w-4 h-4 text-slate-400" />
-                  )}
-                </button>
+                )}
+              </button>
                 <pre className="text-sm text-slate-100 font-mono">
                   {JSON.stringify(currentEndpoint.exampleResponse, null, 2)}
-                </pre>
-              </div>
+              </pre>
+            </div>
             </div>
           </div>
 
@@ -514,47 +684,47 @@ export default function ClientApiTab() {
                     <div className="bg-slate-50 px-4 py-3 border-t border-slate-200">
                       <div className="text-sm text-slate-700 font-mono">
                         {displayApiUrl}{currentEndpoint.path}
-                      </div>
-                    </div>
-                  </div>
+          </div>
+        </div>
+      </div>
 
 
-                  <div>
+          <div>
                     <label className="text-sm font-bold text-slate-700 mb-2 flex items-center">
                       token
                       <span className="ml-1 text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={testToken}
-                      onChange={(e) => setTestToken(e.target.value)}
+            <input
+              type="text"
+              value={testToken}
+              onChange={(e) => setTestToken(e.target.value)}
                       placeholder="Digite seu token aqui"
                       className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-700 text-sm placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all shadow-sm"
-                    />
-                  </div>
+            />
+          </div>
 
-                  <div>
+          <div>
                     <h4 className="text-sm font-bold text-slate-700 mb-2">Body</h4>
                     <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 font-mono text-sm shadow-lg">
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
                           <span className="text-cyan-400 font-semibold">"number"</span>
                           <span className="text-slate-400">:</span>
-                          <input
-                            type="text"
-                            value={testNumber}
-                            onChange={(e) => setTestNumber(e.target.value)}
+            <input
+              type="text"
+              value={testNumber}
+              onChange={(e) => setTestNumber(e.target.value)}
                             className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                          />
-                        </div>
+            />
+          </div>
                         {(selectedEndpoint === 'send-text' || selectedEndpoint === 'send-menu' || selectedEndpoint === 'send-status') && (
                           <div className="flex items-center space-x-2">
                             <span className="text-cyan-400 font-semibold">"text"</span>
                             <span className="text-slate-400">:</span>
                             <input
                               type="text"
-                              value={testMessage}
-                              onChange={(e) => setTestMessage(e.target.value)}
+              value={testMessage}
+              onChange={(e) => setTestMessage(e.target.value)}
                               className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                             />
                           </div>
@@ -617,28 +787,28 @@ export default function ClientApiTab() {
                         )}
                       </div>
                     </div>
-                  </div>
+          </div>
 
-                  <button
-                    onClick={handleTest}
-                    disabled={isLoading}
+          <button
+            onClick={handleTest}
+            disabled={isLoading}
                     className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-orange-500/30"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Enviando...</span>
-                      </>
-                    ) : (
-                      <>
+          >
+            {isLoading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Enviando...</span>
+              </>
+            ) : (
+              <>
                         <Zap className="w-5 h-5" />
                         <span>Enviar Requisição</span>
-                      </>
-                    )}
-                  </button>
+              </>
+            )}
+          </button>
 
-                  {testResponse && (
-                    <div>
+          {testResponse && (
+            <div>
                       <div className="text-sm font-bold text-slate-700 mb-2">Resposta</div>
                       <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 max-h-80 overflow-y-auto shadow-lg">
                         {testResponse === '' ? (
@@ -692,9 +862,9 @@ export default function ClientApiTab() {
                         Para o Cloudflare Worker, apenas o header <code className="bg-slate-700 px-1 py-0.5 rounded text-slate-200">token</code> é necessário.
                       </p>
                     </div>
-                  </div>
-                </div>
-              )}
+              </div>
+            </div>
+          )}
             </div>
           </div>
         </div>
