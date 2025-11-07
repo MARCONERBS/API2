@@ -638,8 +638,8 @@ export default function ClientApiTab() {
                       </p>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
