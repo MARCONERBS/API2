@@ -479,15 +479,55 @@ async function handleRequest(request, env = {}) {
   try {
     const url = new URL(request.url);
     
-    // Extrai o path (remove /whatsapp/ se existir)
+    // Extrai o path e normaliza para ambos os endpoints
     let path = url.pathname;
+    
+    // Log do path original
+    if (DEBUG_MODE) {
+      console.log(`[DEBUG] Original request path: ${path}`);
+    }
+    
+    // Remove /whatsapp/ se existir (formato do Cloudflare Worker: /whatsapp/send-text)
     if (path.startsWith('/whatsapp/')) {
       path = path.replace('/whatsapp/', '/');
+    }
+    
+    // Remove /functions/v1/ se já estiver presente (caso chamada direta)
+    if (path.startsWith('/functions/v1/')) {
+      path = path.replace('/functions/v1/', '/');
+    }
+    
+    // Remove trailing slash
+    if (path.endsWith('/') && path.length > 1) {
+      path = path.slice(0, -1);
     }
     
     // Se não começar com /, adiciona
     if (!path.startsWith('/')) {
       path = '/' + path;
+    }
+    
+    // Log do path processado
+    console.log(`[INFO] Processing endpoint - Original: ${url.pathname}, Processed: ${path}`);
+    
+    // Verifica se é um endpoint suportado
+    const supportedEndpoints = ['/send-text', '/send-media'];
+    if (!supportedEndpoints.includes(path)) {
+      console.warn(`[WARN] Unsupported endpoint requested: ${path} (Original: ${url.pathname})`);
+      return new Response(
+        JSON.stringify({
+          error: 'Endpoint not supported',
+          code: 'ENDPOINT_NOT_FOUND',
+          message: `The endpoint '${path}' is not supported. Supported endpoints: ${supportedEndpoints.join(', ')}`,
+          requestedPath: path,
+          originalPath: url.pathname,
+          supportedEndpoints: supportedEndpoints
+        }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Lê o body da requisição
@@ -523,7 +563,8 @@ async function handleRequest(request, env = {}) {
     }
 
     // Valida campos obrigatórios para send-media
-    if (path === '/send-media' || path === '/functions/v1/send-media') {
+    // Suporta múltiplos formatos de path: /send-media, /functions/v1/send-media, /whatsapp/send-media
+    if (path === '/send-media' || path.endsWith('/send-media')) {
       if (!bodyData.number) {
         return new Response(
           JSON.stringify({
@@ -573,7 +614,22 @@ async function handleRequest(request, env = {}) {
     }
 
     // Faz proxy para Edge Function do Supabase
-    const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1${path}`;
+    // Normaliza o path para garantir que está correto
+    let functionPath = path;
+    if (functionPath.startsWith('/functions/v1/')) {
+      // Já tem o prefixo correto
+    } else if (functionPath.startsWith('/')) {
+      // Adiciona o prefixo se não tiver
+      functionPath = `/functions/v1${functionPath}`;
+    } else {
+      functionPath = `/functions/v1/${functionPath}`;
+    }
+    
+    const edgeFunctionUrl = `${SUPABASE_URL}${functionPath}`;
+    
+    if (DEBUG_MODE) {
+      console.log(`[DEBUG] Proxying to Edge Function: ${edgeFunctionUrl}`);
+    }
     
     const response = await fetch(edgeFunctionUrl, {
       method: 'POST',
@@ -586,14 +642,77 @@ async function handleRequest(request, env = {}) {
       },
       body: JSON.stringify(bodyData),
     });
-
-    const responseData = await response.text();
-    let responseJson;
     
+    // Log do status da resposta da Edge Function
+    if (DEBUG_MODE || !response.ok) {
+      console.log(`[INFO] Edge Function response - Status: ${response.status}, URL: ${edgeFunctionUrl}`);
+    }
+
+    // Lê a resposta (só pode ler uma vez!)
+    const responseData = await response.text();
+    
+    // Se a Edge Function retornou erro, loga detalhes
+    if (!response.ok) {
+      TOKEN_CACHE.delete(token);
+      
+      // Se for 404, pode ser que a função não existe ou a URL está errada
+      if (response.status === 404) {
+        console.error(`[ERROR] Edge Function not found - URL: ${edgeFunctionUrl}, Path: ${path}, Original Path: ${url.pathname}, Function Path: ${functionPath}`);
+        
+        // Determina qual função foi solicitada baseado no path
+        const functionName = path.replace('/', '').replace('functions/v1/', '') || 'unknown';
+        
+        // Retorna erro mais descritivo para 404
+        try {
+          const errorJson = JSON.parse(responseData);
+          return new Response(
+            JSON.stringify({
+              error: errorJson.message || 'Edge Function not found',
+              code: errorJson.code || 'FUNCTION_NOT_FOUND',
+              message: `The function '${functionName}' was not found. Please check if the function is deployed in Supabase.`,
+              requestedUrl: edgeFunctionUrl,
+              requestedPath: path,
+              functionName: functionName,
+              help: 'Available functions: send-text, send-media. Make sure the function is deployed in Supabase Edge Functions.'
+            }),
+            {
+              status: 404,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        } catch (e) {
+          return new Response(
+            JSON.stringify({
+              error: 'Edge Function not found',
+              code: 'FUNCTION_NOT_FOUND',
+              message: `The function '${functionName}' was not found. Please check if the function is deployed in Supabase.`,
+              requestedUrl: edgeFunctionUrl,
+              requestedPath: path,
+              functionName: functionName,
+              help: 'Available functions: send-text, send-media. Make sure the function is deployed in Supabase Edge Functions.'
+            }),
+            {
+              status: 404,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      }
+      
+      // Loga a resposta de erro para debugging (já temos responseData)
+      if (DEBUG_MODE) {
+        console.error(`[ERROR] Edge Function error response: ${responseData.substring(0, 500)}`);
+      }
+    }
+    
+    let responseJson;
     try {
       responseJson = JSON.parse(responseData);
     } catch (e) {
-      // Se não for JSON, retorna como texto
+      // Se não for JSON, retorna como texto (mas loga o erro)
+      if (DEBUG_MODE) {
+        console.warn(`[WARN] Edge Function returned non-JSON response: ${responseData.substring(0, 100)}`);
+      }
       return new Response(responseData, {
         status: response.status,
         headers: {
@@ -601,11 +720,6 @@ async function handleRequest(request, env = {}) {
           'Content-Type': response.headers.get('Content-Type') || 'text/plain',
         },
       });
-    }
-
-    // Se a Edge Function retornou erro, limpa cache do token
-    if (!response.ok) {
-      TOKEN_CACHE.delete(token);
     }
 
     // Adicionar headers de rate limit na resposta

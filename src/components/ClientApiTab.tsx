@@ -3,6 +3,9 @@ import { Copy, Check, Code, Send, Smartphone, Image, Shield, Info } from 'lucide
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+// Chave anon do Supabase para autenticação nas Edge Functions
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 interface WhatsAppInstance {
   id: string;
   name: string;
@@ -71,7 +74,8 @@ export default function ClientApiTab() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'token': testToken,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // Required by Supabase Edge Functions
+          'token': testToken, // Token da instância WhatsApp
         },
         body: JSON.stringify({
           number: testNumber,
@@ -81,8 +85,11 @@ export default function ClientApiTab() {
 
       const data = await response.json();
       setTestResponse(JSON.stringify(data, null, 2));
-    } catch (error) {
-      setTestResponse(JSON.stringify({ error: 'Erro ao fazer requisição' }, null, 2));
+    } catch (error: any) {
+      setTestResponse(JSON.stringify({ 
+        error: 'Erro ao fazer requisição',
+        message: error.message || 'Erro desconhecido'
+      }, null, 2));
     } finally {
       setIsLoading(false);
     }
@@ -277,15 +284,31 @@ export default function ClientApiTab() {
         <div className="p-6 space-y-6">
           <div>
             <h4 className="font-semibold text-gray-900 mb-3">Headers</h4>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 font-mono text-sm">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3 font-mono text-sm">
               <div className="flex items-center">
                 <span className="text-blue-600 font-semibold w-40">Content-Type:</span>
                 <span className="text-gray-800">application/json</span>
               </div>
-              <div className="flex items-center">
-                <span className="text-blue-600 font-semibold w-40">token:</span>
-                <span className="text-gray-800">seu_token_de_autenticacao</span>
+              <div className="flex items-start">
+                <span className="text-blue-600 font-semibold w-40 flex-shrink-0">Authorization:</span>
+                <div className="flex-1">
+                  <span className="text-gray-800">Bearer {SUPABASE_ANON_KEY?.substring(0, 30)}...</span>
+                  <span className="text-xs text-orange-600 ml-2 font-normal">(obrigatório para Edge Function direta)</span>
+                </div>
               </div>
+              <div className="flex items-start">
+                <span className="text-blue-600 font-semibold w-40 flex-shrink-0">token:</span>
+                <div className="flex-1">
+                  <span className="text-gray-800">seu_token_de_instancia</span>
+                  <span className="text-xs text-gray-500 ml-2 font-normal">(token da instância WhatsApp - obrigatório)</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+              <p className="text-xs text-yellow-800">
+                <strong>Importante:</strong> O header <code className="bg-yellow-100 px-1 py-0.5 rounded">Authorization</code> é obrigatório quando usar a Edge Function diretamente. 
+                Quando usar o Cloudflare Worker, apenas o header <code className="bg-yellow-100 px-1 py-0.5 rounded">token</code> é necessário.
+              </p>
             </div>
           </div>
 
@@ -355,12 +378,16 @@ export default function ClientApiTab() {
 {`curl --request POST \\
   --url ${displayApiUrl} \\
   --header 'Content-Type: application/json' \\
-  --header 'token: seu_token_aqui' \\
+  --header 'token: seu_token_de_instancia' \\
   --data '{
   "number": "5511999999999",
   "text": "Olá! Como posso ajudar?"
 }'`}
               </pre>
+              <div className="mt-2 text-xs text-gray-400 bg-gray-800/50 p-2 rounded">
+                <p><strong>Nota:</strong> Para Cloudflare Worker, apenas o header 'token' é necessário.</p>
+                <p>Para Edge Function direta, adicione também: <code>--header 'Authorization: Bearer SUA_CHAVE_ANON'</code></p>
+              </div>
             </div>
           </div>
         </div>
@@ -379,15 +406,31 @@ export default function ClientApiTab() {
         <div className="p-6 space-y-6">
           <div>
             <h4 className="font-semibold text-gray-900 mb-3">Headers</h4>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 font-mono text-sm">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3 font-mono text-sm">
               <div className="flex items-center">
                 <span className="text-blue-600 font-semibold w-40">Content-Type:</span>
                 <span className="text-gray-800">application/json</span>
               </div>
-              <div className="flex items-center">
-                <span className="text-blue-600 font-semibold w-40">token:</span>
-                <span className="text-gray-800">seu_token_de_autenticacao</span>
+              <div className="flex items-start">
+                <span className="text-blue-600 font-semibold w-40 flex-shrink-0">Authorization:</span>
+                <div className="flex-1">
+                  <span className="text-gray-800">Bearer {SUPABASE_ANON_KEY?.substring(0, 30)}...</span>
+                  <span className="text-xs text-orange-600 ml-2 font-normal">(obrigatório para Edge Function direta)</span>
+                </div>
               </div>
+              <div className="flex items-start">
+                <span className="text-blue-600 font-semibold w-40 flex-shrink-0">token:</span>
+                <div className="flex-1">
+                  <span className="text-gray-800">seu_token_de_instancia</span>
+                  <span className="text-xs text-gray-500 ml-2 font-normal">(token da instância WhatsApp - obrigatório)</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+              <p className="text-xs text-yellow-800">
+                <strong>Importante:</strong> O header <code className="bg-yellow-100 px-1 py-0.5 rounded">Authorization</code> é obrigatório quando usar a Edge Function diretamente. 
+                Quando usar o Cloudflare Worker, apenas o header <code className="bg-yellow-100 px-1 py-0.5 rounded">token</code> é necessário.
+              </p>
             </div>
           </div>
 
@@ -491,7 +534,8 @@ export default function ClientApiTab() {
 {`curl --request POST \\
   --url ${displayMediaUrl} \\
   --header 'Content-Type: application/json' \\
-  --header 'token: seu_token_aqui' \\
+  --header 'Authorization: Bearer ${SUPABASE_ANON_KEY?.substring(0, 30)}...' \\
+  --header 'token: seu_token_de_instancia' \\
   --data '{
   "number": "5511999999999",
   "type": "image",
@@ -499,6 +543,10 @@ export default function ClientApiTab() {
   "text": "Veja esta foto!"
 }'`}
               </pre>
+              <div className="mt-2 text-xs text-gray-400">
+                <p>Nota: O header Authorization é necessário apenas quando usar a Edge Function diretamente.</p>
+                <p>Para o Cloudflare Worker, apenas o header 'token' é necessário.</p>
+              </div>
             </div>
           </div>
         </div>
