@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Copy, Check, Code, Send, Smartphone } from 'lucide-react';
+import { Copy, Check, Code, Send, Smartphone, Image, Shield, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,8 +22,10 @@ export default function ClientApiTab() {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [loadingInstances, setLoadingInstances] = useState(true);
 
-  const displayApiUrl = 'https://api.evasend.com.br/send-text';
+  const displayApiUrl = 'https://api.evasend.com.br/whatsapp/send-text';
   const actualApiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-text`;
+  const displayMediaUrl = 'https://api.evasend.com.br/whatsapp/send-media';
+  const actualMediaUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-media`;
 
   useEffect(() => {
     if (user) {
@@ -113,8 +115,39 @@ export default function ClientApiTab() {
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Documentação da API</h2>
         <p className="text-gray-600">
-          Integre facilmente o envio de mensagens WhatsApp em sua aplicação
+          Integre facilmente o envio de mensagens WhatsApp em sua aplicação. Suporte para texto e mídia.
         </p>
+      </div>
+
+      {/* Rate Limiting Info */}
+      <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200">
+        <div className="flex items-start space-x-3">
+          <Shield className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-purple-900 mb-2">Rate Limiting</h3>
+            <p className="text-sm text-purple-800 mb-3">
+              O sistema implementa proteção contra abuso com limites de requisições:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <p className="text-xs font-semibold text-purple-700 mb-1">Limite por IP</p>
+                <p className="text-lg font-bold text-purple-900">1.000 req/min</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <p className="text-xs font-semibold text-purple-700 mb-1">Limite por Token</p>
+                <p className="text-lg font-bold text-purple-900">1.000 req/min</p>
+              </div>
+            </div>
+            <div className="mt-3 bg-white rounded-lg p-3 border border-purple-200">
+              <div className="flex items-start space-x-2">
+                <Info className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-purple-800">
+                  Todas as respostas incluem headers informativos: <code className="bg-purple-50 px-1 py-0.5 rounded">X-RateLimit-Limit</code>, <code className="bg-purple-50 px-1 py-0.5 rounded">X-RateLimit-Remaining</code>, <code className="bg-purple-50 px-1 py-0.5 rounded">X-RateLimit-Reset</code>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {!loadingInstances && instances.length > 0 && (
@@ -189,7 +222,7 @@ export default function ClientApiTab() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-blue-800 mb-1">URL Recomendada (Produção)</label>
+                <label className="block text-xs font-semibold text-blue-800 mb-1">URL Cloudflare Worker (Produção)</label>
                 <div className="bg-white rounded-lg p-3 font-mono text-sm text-gray-800 flex items-center justify-between">
                   <span className="break-all">{displayApiUrl}</span>
                   <button
@@ -206,7 +239,7 @@ export default function ClientApiTab() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-blue-800 mb-1">URL Direta (Funcional Agora)</label>
+                <label className="block text-xs font-semibold text-blue-800 mb-1">URL Edge Function (Direta)</label>
                 <div className="bg-white rounded-lg p-3 font-mono text-sm text-gray-800 flex items-center justify-between">
                   <span className="break-all">{actualApiUrl}</span>
                   <button
@@ -224,7 +257,7 @@ export default function ClientApiTab() {
 
               <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                 <p className="text-xs text-blue-900">
-                  <strong>Nota:</strong> Use a URL direta enquanto o domínio customizado não for configurado. Para produção, configure o DNS de <code className="bg-white px-1 py-0.5 rounded">api.evasend.com.br</code> para apontar ao Supabase.
+                  <strong>Nota:</strong> Ambas as URLs funcionam. O Cloudflare Worker inclui rate limiting e cache. A Edge Function é mais direta e rápida.
                 </p>
               </div>
             </div>
@@ -234,7 +267,10 @@ export default function ClientApiTab() {
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">POST /send-text</h3>
+          <h3 className="font-semibold text-gray-900 flex items-center">
+            <Send className="w-5 h-5 mr-2" />
+            POST /send-text
+          </h3>
           <p className="text-sm text-gray-600 mt-1">Enviar mensagem de texto via WhatsApp</p>
         </div>
 
@@ -323,6 +359,144 @@ export default function ClientApiTab() {
   --data '{
   "number": "5511999999999",
   "text": "Olá! Como posso ajudar?"
+}'`}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Send Media Endpoint */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-green-50 to-green-100 px-6 py-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900 flex items-center">
+            <Image className="w-5 h-5 mr-2" />
+            POST /send-media
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">Enviar mídia (imagem, vídeo, documento, áudio, sticker) via WhatsApp</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Headers</h4>
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2 font-mono text-sm">
+              <div className="flex items-center">
+                <span className="text-blue-600 font-semibold w-40">Content-Type:</span>
+                <span className="text-gray-800">application/json</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-blue-600 font-semibold w-40">token:</span>
+                <span className="text-gray-800">seu_token_de_autenticacao</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Body (JSON)</h4>
+            <div className="bg-gray-900 rounded-lg p-4 relative overflow-x-auto">
+              <button
+                onClick={() => copyToClipboard('{\n  "number": "5511999999999",\n  "type": "image",\n  "file": "https://exemplo.com/foto.jpg",\n  "text": "Veja esta foto!"\n}', 'media-body')}
+                className="absolute top-3 right-3 p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                {copiedEndpoint === 'media-body' ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              <pre className="text-sm text-gray-100">
+{`{
+  "number": "5511999999999",
+  "type": "image",
+  "file": "https://exemplo.com/foto.jpg",
+  "text": "Veja esta foto!"
+}`}
+              </pre>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Parâmetros Principais</h4>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Campo</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Tipo</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Obrigatório</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-mono text-blue-600">number</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">string</td>
+                    <td className="px-4 py-3 text-sm text-gray-600"><span className="text-red-600 font-semibold">Sim</span></td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Número com código do país</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-mono text-blue-600">type</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">string</td>
+                    <td className="px-4 py-3 text-sm text-gray-600"><span className="text-red-600 font-semibold">Sim</span></td>
+                    <td className="px-4 py-3 text-sm text-gray-600">image, video, document, audio, myaudio, ptt, sticker</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-mono text-blue-600">file</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">string</td>
+                    <td className="px-4 py-3 text-sm text-gray-600"><span className="text-red-600 font-semibold">Sim</span></td>
+                    <td className="px-4 py-3 text-sm text-gray-600">URL ou base64 do arquivo</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-mono text-blue-600">text</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">string</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Não</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Caption/legenda (aceita placeholders)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-mono text-blue-600">docName</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">string</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Não</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">Nome do arquivo (apenas para documents)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Tipos de Mídia Suportados</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {['image', 'video', 'document', 'audio', 'myaudio', 'ptt', 'sticker'].map((type) => (
+                <div key={type} className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
+                  <p className="text-sm font-mono text-gray-800">{type}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Exemplo cURL</h4>
+            <div className="bg-gray-900 rounded-lg p-4 relative overflow-x-auto">
+              <button
+                onClick={() => copyToClipboard(`curl --request POST \\\n  --url ${displayMediaUrl} \\\n  --header 'Content-Type: application/json' \\\n  --header 'token: seu_token_aqui' \\\n  --data '{\n  "number": "5511999999999",\n  "type": "image",\n  "file": "https://exemplo.com/foto.jpg",\n  "text": "Veja esta foto!"\n}'`, 'media-curl')}
+                className="absolute top-3 right-3 p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                {copiedEndpoint === 'media-curl' ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              <pre className="text-sm text-gray-100 whitespace-pre-wrap">
+{`curl --request POST \\
+  --url ${displayMediaUrl} \\
+  --header 'Content-Type: application/json' \\
+  --header 'token: seu_token_aqui' \\
+  --data '{
+  "number": "5511999999999",
+  "type": "image",
+  "file": "https://exemplo.com/foto.jpg",
+  "text": "Veja esta foto!"
 }'`}
               </pre>
             </div>

@@ -1,5 +1,38 @@
 # Guia: Cloudflare Worker para Múltiplas Instâncias
 
+## 📋 Recursos Implementados
+
+- ✅ Validação dinâmica de tokens
+- ✅ Rate limiting (1000 req/min por IP/token)
+- ✅ Logs otimizados com variável de ambiente DEBUG
+- ✅ Timeout de validação (10 segundos)
+- ✅ Suporte a múltiplos endpoints (/send-text, /send-media)
+- ✅ Cache de validação de tokens (5 minutos)
+- ✅ Headers informativos de rate limit
+
+## Endpoints Suportados
+
+O Worker atualmente suporta os seguintes endpoints:
+
+- **`/send-text`** - Envio de mensagens de texto
+- **`/send-media`** - Envio de mídia (imagem, vídeo, documento, áudio, sticker)
+
+### URLs Disponíveis
+
+**Cloudflare Worker (Domínio Customizado):**
+```
+https://api.evasend.com.br/whatsapp/send-text
+https://api.evasend.com.br/whatsapp/send-media
+```
+
+**Edge Function Direta:**
+```
+https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-text
+https://ctshqbxxlauulzsbapjb.supabase.co/functions/v1/send-media
+```
+
+---
+
 ## Como Funciona a Validação de Múltiplos Tokens
 
 ### Conceito Principal
@@ -305,12 +338,23 @@ response2 = requests.post(
 2. Verificar se Supabase está online
 3. Verificar logs do Cloudflare Worker
 
-## Próximos Passos
+## Status de Implementação
 
 1. ✅ Deploy do Worker no Cloudflare
 2. ✅ Configurar domínio customizado
 3. ✅ Atualizar frontend para usar nova URL
-4. ⚠️ Implementar rate limiting (opcional)
-5. ⚠️ Adicionar logging estruturado (opcional)
-6. ⚠️ Invalidar cache ao desconectar instância (opcional)
+4. ✅ Rate limiting implementado (1000 req/min por IP/token)
+5. ✅ Logging estruturado implementado (com variável DEBUG)
+6. ✅ Timeout de validação (10 segundos)
+7. ✅ Suporte a múltiplos endpoints (/send-text, /send-media)
+8. ✅ Headers informativos de rate limit
+9. ✅ Cache de validação de tokens (5 minutos)
+10. ⚠️ Invalidar cache ao desconectar instância (opcional - ver `src/services/cache-invalidation.ts`)
+
+## Próximos Passos (Opcional)
+
+- Implementar métricas e analytics
+- Adicionar webhooks para eventos
+- Implementar retry automático
+- Adicionar suporte a mais tipos de mídia
 

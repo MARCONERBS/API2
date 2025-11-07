@@ -522,6 +522,56 @@ async function handleRequest(request, env = {}) {
       }
     }
 
+    // Valida campos obrigatórios para send-media
+    if (path === '/send-media' || path === '/functions/v1/send-media') {
+      if (!bodyData.number) {
+        return new Response(
+          JSON.stringify({
+            error: "Field 'number' is required",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      if (!bodyData.type) {
+        return new Response(
+          JSON.stringify({
+            error: "Field 'type' is required (image, video, document, audio, myaudio, ptt, sticker)",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      if (!bodyData.file) {
+        return new Response(
+          JSON.stringify({
+            error: "Field 'file' is required (URL or base64)",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      // Validação de tipos suportados
+      const supportedTypes = ['image', 'video', 'document', 'audio', 'myaudio', 'ptt', 'sticker'];
+      if (!supportedTypes.includes(bodyData.type)) {
+        return new Response(
+          JSON.stringify({
+            error: `Media type '${bodyData.type}' not supported. Supported types: ${supportedTypes.join(', ')}`,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
     // Faz proxy para Edge Function do Supabase
     const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1${path}`;
     
