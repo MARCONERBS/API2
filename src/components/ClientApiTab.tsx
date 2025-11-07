@@ -237,17 +237,17 @@ export default function ClientApiTab() {
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-b border-indigo-500 px-8 py-8 shadow-xl">
-          <div className="flex items-center space-x-3 mb-3">
-            <span className={`px-4 py-1.5 rounded-lg text-sm font-bold shadow-lg ${
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-b border-indigo-500 px-5 py-3 shadow-xl">
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className={`px-2 py-0.5 rounded text-xs font-bold shadow-lg ${
               currentEndpoint.color === 'cyan' ? 'bg-cyan-500 text-white' : 'bg-green-500 text-white'
             }`}>
               {currentEndpoint.method}
             </span>
-            <h1 className="text-2xl font-bold text-white/90">{currentEndpoint.path}</h1>
+            <h1 className="text-base font-bold text-white/90">{currentEndpoint.path}</h1>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-3">{currentEndpoint.title}</h2>
-          <p className="text-blue-100 text-lg">{currentEndpoint.description}</p>
+          <h2 className="text-xl font-bold text-white mb-1">{currentEndpoint.title}</h2>
+          <p className="text-blue-100 text-xs">{currentEndpoint.description}</p>
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-slate-200">
