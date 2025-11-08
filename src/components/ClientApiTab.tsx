@@ -26,6 +26,34 @@ export default function ClientApiTab() {
   const [mediaFile, setMediaFile] = useState('https://exemplo.com/foto.jpg');
   const [mediaCaption, setMediaCaption] = useState('Veja esta foto!');
   const [docName, setDocName] = useState('documento.pdf');
+  
+  // Estados para send-menu
+  const [menuType, setMenuType] = useState('button');
+  const [menuChoices, setMenuChoices] = useState('Suporte Técnico|suporte\nFazer Pedido|pedido\nNosso Site|https://exemplo.com');
+  const [footerText, setFooterText] = useState('Escolha uma das opções abaixo');
+  const [listButton, setListButton] = useState('Ver Opções');
+  const [selectableCount, setSelectableCount] = useState(1);
+  const [imageButton, setImageButton] = useState('');
+  
+  // Estados para send-carousel
+  const [carouselItems, setCarouselItems] = useState('Produto Exemplo');
+  const [carouselImage, setCarouselImage] = useState('https://exemplo.com/imagem.jpg');
+  const [buttonText, setButtonText] = useState('Comprar');
+  const [buttonId, setButtonId] = useState('comprar');
+  const [buttonType, setButtonType] = useState('REPLY');
+  
+  // Estados para send-pix-button
+  const [pixType, setPixType] = useState('EVP');
+  const [pixKey, setPixKey] = useState('123e4567-e89b-12d3-a456-426614174000');
+  const [pixName, setPixName] = useState('Loja Exemplo');
+  
+  // Estados para send-status
+  const [statusType, setStatusType] = useState('text');
+  const [backgroundColor, setBackgroundColor] = useState(7);
+  const [font, setFont] = useState(1);
+  const [statusFile, setStatusFile] = useState('');
+  const [thumbnail, setThumbnail] = useState('');
+  
   const [testResponse, setTestResponse] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
@@ -101,11 +129,14 @@ export default function ClientApiTab() {
         case 'send-menu':
           body = {
             number: testNumber,
-            type: 'button',
+            type: menuType,
             text: testMessage,
-            choices: ['Opção 1|op1', 'Opção 2|op2', 'Opção 3|op3'],
-            footerText: 'Escolha uma opção',
+            choices: menuChoices.split('\n').filter(c => c.trim() !== ''),
           };
+          if (footerText) body.footerText = footerText;
+          if (menuType === 'list' && listButton) body.listButton = listButton;
+          if (menuType === 'poll' && selectableCount) body.selectableCount = selectableCount;
+          if (imageButton) body.imageButton = imageButton;
           break;
         case 'send-carousel':
           body = {
@@ -113,13 +144,13 @@ export default function ClientApiTab() {
             text: testMessage,
             carousel: [
               {
-                text: 'Produto Exemplo',
-                image: mediaFile || 'https://exemplo.com/imagem.jpg',
+                text: carouselItems,
+                image: carouselImage,
                 buttons: [
                   {
-                    id: 'comprar',
-                    text: 'Comprar',
-                    type: 'REPLY',
+                    id: buttonId,
+                    text: buttonText,
+                    type: buttonType,
                   },
                 ],
               },
@@ -129,18 +160,25 @@ export default function ClientApiTab() {
         case 'send-pix-button':
           body = {
             number: testNumber,
-            pixType: 'EVP',
-            pixKey: '123e4567-e89b-12d3-a456-426614174000',
-            pixName: 'Loja Exemplo',
+            pixType: pixType,
+            pixKey: pixKey,
           };
+          if (pixName) body.pixName = pixName;
           break;
         case 'send-status':
+          // Status não requer número (é enviado para o próprio número conectado)
           body = {
-            type: 'text',
-            text: testMessage,
-            background_color: 7,
-            font: 1,
+            type: statusType,
           };
+          if (statusType === 'text') {
+            body.text = testMessage;
+            body.background_color = backgroundColor;
+            body.font = font;
+          } else {
+            if (statusFile) body.file = statusFile;
+            if (testMessage) body.text = testMessage;
+            if (thumbnail) body.thumbnail = thumbnail;
+          }
           break;
       }
 
@@ -677,7 +715,11 @@ export default function ClientApiTab() {
                   {/* Form */}
                   <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className={`px-4 py-3 font-bold text-sm text-white ${
-                      currentEndpoint.color === 'cyan' ? 'bg-cyan-500' : 'bg-green-500'
+                      currentEndpoint.color === 'cyan' ? 'bg-cyan-500' : 
+                      currentEndpoint.color === 'green' ? 'bg-green-500' :
+                      currentEndpoint.color === 'purple' ? 'bg-purple-500' :
+                      currentEndpoint.color === 'indigo' ? 'bg-indigo-500' :
+                      currentEndpoint.color === 'orange' ? 'bg-orange-500' : 'bg-gray-500'
                     }`}>
                       {currentEndpoint.method}
                     </div>
@@ -707,24 +749,26 @@ export default function ClientApiTab() {
                     <h4 className="text-sm font-bold text-slate-700 mb-2">Body</h4>
                     <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 font-mono text-sm shadow-lg">
                       <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-cyan-400 font-semibold">"number"</span>
-                          <span className="text-slate-400">:</span>
-            <input
-              type="text"
-              value={testNumber}
-              onChange={(e) => setTestNumber(e.target.value)}
-                            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-            />
-          </div>
-                        {(selectedEndpoint === 'send-text' || selectedEndpoint === 'send-menu' || selectedEndpoint === 'send-status') && (
+                        {(selectedEndpoint !== 'send-status') && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-cyan-400 font-semibold">"number"</span>
+                            <span className="text-slate-400">:</span>
+                            <input
+                              type="text"
+                              value={testNumber}
+                              onChange={(e) => setTestNumber(e.target.value)}
+                              className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            />
+                          </div>
+                        )}
+                        {selectedEndpoint === 'send-text' && (
                           <div className="flex items-center space-x-2">
                             <span className="text-cyan-400 font-semibold">"text"</span>
                             <span className="text-slate-400">:</span>
                             <input
                               type="text"
-              value={testMessage}
-              onChange={(e) => setTestMessage(e.target.value)}
+                              value={testMessage}
+                              onChange={(e) => setTestMessage(e.target.value)}
                               className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                             />
                           </div>
@@ -782,6 +826,317 @@ export default function ClientApiTab() {
                                   className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                                 />
                               </div>
+                            )}
+                          </>
+                        )}
+                        {selectedEndpoint === 'send-menu' && (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"type"</span>
+                              <span className="text-slate-400">:</span>
+                              <select
+                                value={menuType}
+                                onChange={(e) => setMenuType(e.target.value)}
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              >
+                                <option value="button">button</option>
+                                <option value="list">list</option>
+                                <option value="poll">poll</option>
+                                <option value="carousel">carousel</option>
+                              </select>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"text"</span>
+                              <span className="text-slate-400">:</span>
+                              <input
+                                type="text"
+                                value={testMessage}
+                                onChange={(e) => setTestMessage(e.target.value)}
+                                placeholder="Texto principal"
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              />
+                            </div>
+                            <div className="flex items-start space-x-2">
+                              <span className="text-cyan-400 font-semibold mt-2">"choices"</span>
+                              <span className="text-slate-400 mt-2">:</span>
+                              <textarea
+                                value={menuChoices}
+                                onChange={(e) => setMenuChoices(e.target.value)}
+                                placeholder="Uma opção por linha. Formato: texto|id"
+                                rows={4}
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 resize-none"
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"footerText"</span>
+                              <span className="text-slate-400">:</span>
+                              <input
+                                type="text"
+                                value={footerText}
+                                onChange={(e) => setFooterText(e.target.value)}
+                                placeholder="Texto do rodapé (opcional)"
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              />
+                            </div>
+                            {menuType === 'list' && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-cyan-400 font-semibold">"listButton"</span>
+                                <span className="text-slate-400">:</span>
+                                <input
+                                  type="text"
+                                  value={listButton}
+                                  onChange={(e) => setListButton(e.target.value)}
+                                  placeholder="Texto do botão"
+                                  className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                />
+                              </div>
+                            )}
+                            {menuType === 'poll' && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-cyan-400 font-semibold">"selectableCount"</span>
+                                <span className="text-slate-400">:</span>
+                                <input
+                                  type="number"
+                                  value={selectableCount}
+                                  onChange={(e) => setSelectableCount(parseInt(e.target.value) || 1)}
+                                  placeholder="Número de opções selecionáveis"
+                                  className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                />
+                              </div>
+                            )}
+                            {menuType === 'button' && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-cyan-400 font-semibold">"imageButton"</span>
+                                <span className="text-slate-400">:</span>
+                                <input
+                                  type="text"
+                                  value={imageButton}
+                                  onChange={(e) => setImageButton(e.target.value)}
+                                  placeholder="URL da imagem (opcional)"
+                                  className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {selectedEndpoint === 'send-carousel' && (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"text"</span>
+                              <span className="text-slate-400">:</span>
+                              <input
+                                type="text"
+                                value={testMessage}
+                                onChange={(e) => setTestMessage(e.target.value)}
+                                placeholder="Texto principal"
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              />
+                            </div>
+                            <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-700">
+                              <div className="text-xs text-slate-400 mb-2">carousel[0]:</div>
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold text-xs">"text"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="text"
+                                    value={carouselItems}
+                                    onChange={(e) => setCarouselItems(e.target.value)}
+                                    placeholder="Texto do cartão"
+                                    className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold text-xs">"image"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="text"
+                                    value={carouselImage}
+                                    onChange={(e) => setCarouselImage(e.target.value)}
+                                    placeholder="URL da imagem"
+                                    className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                                <div className="bg-slate-700/50 rounded-lg p-2 border border-slate-600">
+                                  <div className="text-xs text-slate-400 mb-1">buttons[0]:</div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-cyan-400 font-semibold text-xs">"id"</span>
+                                      <span className="text-slate-400">:</span>
+                                      <input
+                                        type="text"
+                                        value={buttonId}
+                                        onChange={(e) => setButtonId(e.target.value)}
+                                        placeholder="ID do botão"
+                                        className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                      />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-cyan-400 font-semibold text-xs">"text"</span>
+                                      <span className="text-slate-400">:</span>
+                                      <input
+                                        type="text"
+                                        value={buttonText}
+                                        onChange={(e) => setButtonText(e.target.value)}
+                                        placeholder="Texto do botão"
+                                        className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                      />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-cyan-400 font-semibold text-xs">"type"</span>
+                                      <span className="text-slate-400">:</span>
+                                      <select
+                                        value={buttonType}
+                                        onChange={(e) => setButtonType(e.target.value)}
+                                        className="flex-1 bg-slate-600 border border-slate-500 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                      >
+                                        <option value="REPLY">REPLY</option>
+                                        <option value="URL">URL</option>
+                                        <option value="COPY">COPY</option>
+                                        <option value="CALL">CALL</option>
+                                      </select>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        {selectedEndpoint === 'send-pix-button' && (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"pixType"</span>
+                              <span className="text-slate-400">:</span>
+                              <select
+                                value={pixType}
+                                onChange={(e) => setPixType(e.target.value)}
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              >
+                                <option value="CPF">CPF</option>
+                                <option value="CNPJ">CNPJ</option>
+                                <option value="PHONE">PHONE</option>
+                                <option value="EMAIL">EMAIL</option>
+                                <option value="EVP">EVP</option>
+                              </select>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"pixKey"</span>
+                              <span className="text-slate-400">:</span>
+                              <input
+                                type="text"
+                                value={pixKey}
+                                onChange={(e) => setPixKey(e.target.value)}
+                                placeholder="Chave PIX"
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"pixName"</span>
+                              <span className="text-slate-400">:</span>
+                              <input
+                                type="text"
+                                value={pixName}
+                                onChange={(e) => setPixName(e.target.value)}
+                                placeholder="Nome do recebedor (opcional)"
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              />
+                            </div>
+                          </>
+                        )}
+                        {selectedEndpoint === 'send-status' && (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-cyan-400 font-semibold">"type"</span>
+                              <span className="text-slate-400">:</span>
+                              <select
+                                value={statusType}
+                                onChange={(e) => setStatusType(e.target.value)}
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                              >
+                                <option value="text">text</option>
+                                <option value="image">image</option>
+                                <option value="video">video</option>
+                                <option value="audio">audio</option>
+                              </select>
+                            </div>
+                            {statusType === 'text' ? (
+                              <>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold">"text"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="text"
+                                    value={testMessage}
+                                    onChange={(e) => setTestMessage(e.target.value)}
+                                    placeholder="Texto do status"
+                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold">"background_color"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="number"
+                                    value={backgroundColor}
+                                    onChange={(e) => setBackgroundColor(parseInt(e.target.value) || 7)}
+                                    placeholder="1-19"
+                                    min="1"
+                                    max="19"
+                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold">"font"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="number"
+                                    value={font}
+                                    onChange={(e) => setFont(parseInt(e.target.value) || 1)}
+                                    placeholder="0-8"
+                                    min="0"
+                                    max="8"
+                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold">"file"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="text"
+                                    value={statusFile}
+                                    onChange={(e) => setStatusFile(e.target.value)}
+                                    placeholder="URL ou base64 do arquivo"
+                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-cyan-400 font-semibold">"text"</span>
+                                  <span className="text-slate-400">:</span>
+                                  <input
+                                    type="text"
+                                    value={testMessage}
+                                    onChange={(e) => setTestMessage(e.target.value)}
+                                    placeholder="Legenda (opcional)"
+                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                  />
+                                </div>
+                                {statusType === 'video' && (
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-cyan-400 font-semibold">"thumbnail"</span>
+                                    <span className="text-slate-400">:</span>
+                                    <input
+                                      type="text"
+                                      value={thumbnail}
+                                      onChange={(e) => setThumbnail(e.target.value)}
+                                      placeholder="URL da miniatura (opcional)"
+                                      className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-200 text-xs outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                    />
+                                  </div>
+                                )}
+                              </>
                             )}
                           </>
                         )}
