@@ -664,22 +664,38 @@ export default function ClientApiTab() {
 
             {/* Example Response */}
           <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-4">Resposta de Exemplo</h3>
-              <div className="bg-slate-900 rounded-xl p-5 border border-slate-700 relative shadow-lg">
-              <button
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  Resposta de Exemplo
+                </h3>
+                <button
                   onClick={() => copyToClipboard(JSON.stringify(currentEndpoint.exampleResponse, null, 2), 'response')}
-                  className="absolute top-3 right-3 p-2 hover:bg-slate-800 rounded-lg transition-colors"
-              >
+                  className="flex items-center space-x-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium text-slate-700"
+                >
                   {copiedEndpoint === 'response' ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                    <Copy className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-                <pre className="text-sm text-slate-100 font-mono">
-                  {JSON.stringify(currentEndpoint.exampleResponse, null, 2)}
-              </pre>
-            </div>
+                    <>
+                      <Check className="w-4 h-4 text-green-600" />
+                      <span>Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-slate-600" />
+                      <span>Copiar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl p-6 border-2 border-slate-700 relative shadow-xl overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
+                <div className="relative pt-2">
+                  <pre className="text-base text-green-50 font-mono leading-relaxed overflow-x-auto">
+                    <code className="block">
+                      {JSON.stringify(currentEndpoint.exampleResponse, null, 2)}
+                    </code>
+                  </pre>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1162,23 +1178,85 @@ export default function ClientApiTab() {
             )}
           </button>
 
-          {testResponse && (
-            <div>
-                      <div className="text-sm font-bold text-slate-700 mb-2">Resposta</div>
-                      <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 max-h-80 overflow-y-auto shadow-lg">
-                        {testResponse === '' ? (
-                          <div className="text-center py-12 text-slate-400 text-sm">
-                            Nenhuma resposta ainda<br />
-                            <span className="text-xs">Envie uma requisição para ver o resultado</span>
-                          </div>
-                        ) : (
-                          <pre className="text-xs text-slate-100 font-mono whitespace-pre-wrap">
-                            {testResponse}
-                          </pre>
-                        )}
-                      </div>
-                    </div>
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  testResponse && (testResponse.includes('"error"') || testResponse.includes('"Error"'))
+                    ? 'bg-red-500 animate-pulse' 
+                    : testResponse
+                    ? 'bg-green-500'
+                    : 'bg-slate-400'
+                }`}></div>
+                <div className="text-base font-bold text-slate-800">
+                  {testResponse 
+                    ? (testResponse.includes('"error"') || testResponse.includes('"Error"')
+                      ? 'Resposta com Erro' 
+                      : 'Resposta de Sucesso')
+                    : 'Aguardando Resposta'}
+                </div>
+              </div>
+              {testResponse && (
+                <button
+                  onClick={() => copyToClipboard(testResponse, 'test-response')}
+                  className="flex items-center space-x-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium text-slate-700"
+                >
+                  {copiedEndpoint === 'test-response' ? (
+                    <>
+                      <Check className="w-4 h-4 text-green-600" />
+                      <span>Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-slate-600" />
+                      <span>Copiar</span>
+                    </>
                   )}
+                </button>
+              )}
+            </div>
+            <div className={`rounded-xl p-6 border-2 shadow-xl overflow-hidden relative ${
+              testResponse 
+                ? (testResponse.includes('"error"') || testResponse.includes('"Error"')
+                  ? 'bg-gradient-to-br from-red-950/80 via-red-900/60 to-slate-900 border-red-600/70'
+                  : 'bg-gradient-to-br from-green-950/50 via-emerald-900/40 to-slate-900 border-green-600/70')
+                : 'bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700'
+            }`}>
+              <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                testResponse
+                  ? (testResponse.includes('"error"') || testResponse.includes('"Error"')
+                    ? 'bg-gradient-to-r from-red-500 via-red-600 to-red-700'
+                    : 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500')
+                  : 'bg-slate-600'
+              }`}></div>
+              <div className="relative max-h-96 overflow-y-auto pt-2">
+                {!testResponse ? (
+                  <div className="text-center py-16 text-slate-400">
+                    <div className="text-lg font-semibold mb-2 text-slate-300">Nenhuma resposta ainda</div>
+                    <div className="text-sm">Envie uma requisição para ver o resultado aqui</div>
+                  </div>
+                ) : (
+                  <pre className={`text-base font-mono leading-relaxed whitespace-pre-wrap ${
+                    testResponse.includes('"error"') || testResponse.includes('"Error"')
+                      ? 'text-red-50'
+                      : 'text-green-50'
+                  }`}>
+                    <code className="block">
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(testResponse);
+                          return JSON.stringify(parsed, null, 2);
+                        } catch {
+                          // Se não for JSON válido, retorna como texto simples
+                          return testResponse;
+                        }
+                      })()}
+                    </code>
+                  </pre>
+                )}
+              </div>
+            </div>
+          </div>
                 </div>
               ) : (
                 <div>
