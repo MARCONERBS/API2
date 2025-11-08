@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Copy, Check, ChevronRight, Send, Image, Smartphone, Shield, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,6 +16,33 @@ interface WhatsAppInstance {
 }
 
 type EndpointType = 'send-text' | 'send-media' | 'send-menu' | 'send-carousel' | 'send-pix-button' | 'send-status';
+
+type EndpointParam = {
+  name: string;
+  type: string;
+  required: boolean;
+  description: string;
+};
+
+type EndpointResponseExample = {
+  status: number | string;
+  label: string;
+  body: Record<string, unknown>;
+};
+
+type EndpointDoc = {
+  title: string;
+  description: string;
+  method: 'POST' | 'GET' | 'PUT' | 'DELETE';
+  path: string;
+  icon: LucideIcon;
+  color: string;
+  features: string[];
+  params: EndpointParam[];
+  exampleRequest: Record<string, unknown>;
+  exampleResponse?: Record<string, unknown>;
+  responses?: EndpointResponseExample[];
+};
 
 export default function ClientApiTab() {
   const { user } = useAuth();
@@ -238,7 +266,7 @@ export default function ClientApiTab() {
     }
   ];
 
-  const endpointData = {
+  const endpointData: Record<EndpointType, EndpointDoc> = {
     'send-text': {
       title: 'Enviar mensagem de texto',
       description: 'Envia uma mensagem de texto para um contato ou grupo.',
@@ -377,11 +405,84 @@ export default function ClientApiTab() {
           }
         ]
       },
-      exampleResponse: {
-        success: true,
-        messageId: "3EB0123456789ABCDEF",
-        timestamp: 1699564800
-      }
+      responses: [
+        {
+          status: 200,
+          label: "Carrossel enviado com sucesso",
+          body: {
+            id: "123e4567-e89b-12d3-a456-426614174000",
+            messageid: "string",
+            chatid: "string",
+            fromMe: false,
+            isGroup: false,
+            messageType: "text",
+            messageTimestamp: 0,
+            edited: "string",
+            quoted: "string",
+            reaction: "string",
+            sender: "string",
+            senderName: "string",
+            source: "ios",
+            status: "pending",
+            text: "string",
+            vote: "string",
+            buttonOrListid: "string",
+            convertOptions: "string",
+            fileURL: "https://example.com",
+            content: "string",
+            owner: "string",
+            track_source: "string",
+            track_id: "string",
+            created: "2024-01-15T10:30:00Z",
+            updated: "2024-01-15T10:30:00Z",
+            ai_metadata: {
+              agent_id: "string",
+              request: {
+                messages: ["item"],
+                tools: ["item"],
+                options: {
+                  model: "string",
+                  temperature: 0,
+                  maxTokens: 0,
+                  topP: 0,
+                  frequencyPenalty: 0,
+                  presencePenalty: 0
+                }
+              },
+              response: {
+                choices: ["item"],
+                toolResults: ["item"],
+                error: "string"
+              }
+            },
+            response: {
+              status: "success",
+              message: "Carousel sent successfully"
+            }
+          }
+        },
+        {
+          status: 400,
+          label: "Requisição inválida",
+          body: {
+            error: "Missing required fields or invalid card format"
+          }
+        },
+        {
+          status: 401,
+          label: "Não autorizado",
+          body: {
+            error: "Invalid token"
+          }
+        },
+        {
+          status: 500,
+          label: "Erro interno do servidor",
+          body: {
+            error: "Failed to send carousel"
+          }
+        }
+      ]
     },
     'send-pix-button': {
       title: 'Enviar botão PIX',
@@ -466,6 +567,18 @@ export default function ClientApiTab() {
   }
   
   const IconComponent = currentEndpoint.icon;
+
+  const responseExamples = currentEndpoint.responses && currentEndpoint.responses.length > 0
+    ? currentEndpoint.responses
+    : currentEndpoint.exampleResponse
+    ? [
+        {
+          status: 200,
+          label: 'Resposta de Exemplo',
+          body: currentEndpoint.exampleResponse,
+        },
+      ]
+    : [];
 
   return (
     <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -664,38 +777,75 @@ export default function ClientApiTab() {
 
             {/* Example Response */}
           <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  Resposta de Exemplo
-                </h3>
-                <button
-                  onClick={() => copyToClipboard(JSON.stringify(currentEndpoint.exampleResponse, null, 2), 'response')}
-                  className="flex items-center space-x-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium text-slate-700"
-                >
-                  {copiedEndpoint === 'response' ? (
-                    <>
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span>Copiado!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 text-slate-600" />
-                      <span>Copiar</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl p-6 border-2 border-slate-700 relative shadow-xl overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
-                <div className="relative pt-2">
-                  <pre className="text-base text-green-50 font-mono leading-relaxed overflow-x-auto">
-                    <code className="block">
-                      {JSON.stringify(currentEndpoint.exampleResponse, null, 2)}
-                    </code>
-                  </pre>
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-2 ${responseExamples.length > 1 ? 'bg-gradient-to-r from-emerald-500 to-green-500' : 'bg-green-500'}`}></div>
+                {responseExamples.length > 1 ? 'Respostas de Exemplo' : 'Resposta de Exemplo'}
+              </h3>
+              {responseExamples.length === 0 ? (
+                <div className="bg-slate-100 border border-slate-300 rounded-xl p-6 text-sm text-slate-600">
+                  Nenhum exemplo de resposta disponível.
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-5">
+                  {responseExamples.map((response, idx) => {
+                    const statusString = String(response.status);
+                    const statusNumber = Number(statusString);
+                    const statusText = `HTTP ${statusString}`;
+                    const isError = !Number.isNaN(statusNumber)
+                      ? statusNumber >= 400
+                      : statusString.startsWith('4') || statusString.startsWith('5');
+                    const cardClass = isError
+                      ? 'bg-gradient-to-br from-red-950/80 via-red-900/60 to-slate-900 border-red-600/70'
+                      : 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-emerald-600/70';
+                    const barClass = isError
+                      ? 'bg-gradient-to-r from-red-500 via-red-600 to-red-700'
+                      : 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500';
+                    const textClass = isError ? 'text-red-50' : 'text-emerald-50';
+                    const badgeClass = isError ? 'text-red-300' : 'text-emerald-300';
+                    const copyKey = `response-${statusString}-${idx}`;
+
+                    return (
+                      <div
+                        key={copyKey}
+                        className={`rounded-xl border-2 shadow-xl overflow-hidden relative ${cardClass}`}
+                      >
+                        <div className={`absolute top-0 left-0 right-0 h-1.5 ${barClass}`}></div>
+                        <div className="flex items-start justify-between px-5 pt-4 pb-2">
+                          <div>
+                            <div className={`text-xs uppercase tracking-wide ${badgeClass}`}>{statusText}</div>
+                            <h4 className="text-white text-sm font-semibold mt-1">{response.label}</h4>
+                          </div>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(JSON.stringify(response.body, null, 2), copyKey)
+                            }
+                            className="flex items-center space-x-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-xs font-medium text-white"
+                          >
+                            {copiedEndpoint === copyKey ? (
+                              <>
+                                <Check className="w-4 h-4 text-emerald-200" />
+                                <span>Copiado!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4 text-emerald-100" />
+                                <span>Copiar</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <div className="px-5 pb-5 pt-1">
+                          <pre className={`text-sm md:text-base font-mono leading-relaxed overflow-x-auto ${textClass}`}>
+                            <code className="block">
+                              {JSON.stringify(response.body, null, 2)}
+                            </code>
+                          </pre>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
