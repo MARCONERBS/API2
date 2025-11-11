@@ -4,6 +4,14 @@ import type { LucideIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_SUPABASE_ANON_KEY?: string;
+    readonly VITE_SUPABASE_URL?: string;
+    readonly VITE_PUBLIC_API_URL?: string;
+  }
+}
+
 // Chave anon do Supabase para autenticação nas Edge Functions
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -92,8 +100,23 @@ export default function ClientApiTab() {
   const [activeTab, setActiveTab] = useState<'try' | 'code'>('try');
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['enviar-mensagem']);
 
-  const displayApiUrl = 'https://api.evasend.com.br/whatsapp';
-  const actualApiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+  const DEFAULT_PUBLIC_API_URL = 'https://api.evasend.com.br/whatsapp';
+  const sanitizedPublicApiUrl = import.meta.env.VITE_PUBLIC_API_URL
+    ? import.meta.env.VITE_PUBLIC_API_URL.replace(/\/$/, '')
+    : undefined;
+  const sanitizedSupabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    ? `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, '')}/functions/v1`
+    : undefined;
+
+  const baseUrlCandidates = [
+    sanitizedPublicApiUrl,
+    DEFAULT_PUBLIC_API_URL,
+    sanitizedSupabaseUrl,
+  ].filter((value): value is string => Boolean(value));
+
+  const apiBaseUrl = baseUrlCandidates[0]!;
+  const requiresSupabaseAuth = sanitizedSupabaseUrl !== undefined && apiBaseUrl === sanitizedSupabaseUrl;
+  const buildEndpointUrl = (path: string) => `${apiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
   useEffect(() => {
     if (user) {
@@ -135,7 +158,7 @@ export default function ClientApiTab() {
     setTestResponse('');
 
     try {
-      let body: any = {};
+      let body: Record<string, unknown> = {};
 
       // Construir body baseado no endpoint selecionado
       switch (selectedEndpoint) {
@@ -161,7 +184,7 @@ export default function ClientApiTab() {
             number: testNumber,
             type: menuType,
             text: testMessage,
-            choices: menuChoices.split('\n').filter(c => c.trim() !== ''),
+            choices: menuChoices.split('\n').filter((choice) => choice.trim() !== ''),
           };
           if (footerText) body.footerText = footerText;
           if (menuType === 'list' && listButton) body.listButton = listButton;
@@ -212,13 +235,18 @@ export default function ClientApiTab() {
           break;
       }
 
-      const response = await fetch(`${actualApiUrl}/${selectedEndpoint}`, {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        token: testToken,
+      };
+
+      if (requiresSupabaseAuth && SUPABASE_ANON_KEY) {
+        headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+      }
+
+      const response = await fetch(buildEndpointUrl(currentEndpoint.path), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // Required by Supabase Edge Functions
-          'token': testToken, // Token da instância WhatsApp
-        },
+        headers,
         body: JSON.stringify(body),
       });
 
@@ -273,7 +301,7 @@ export default function ClientApiTab() {
       title: 'Enviar mensagem de texto',
       description: 'Envia uma mensagem de texto para um contato ou grupo.',
       method: 'POST',
-      path: '/send/text',
+      path: '/send-text',
       icon: Send,
       color: 'cyan',
       features: [
@@ -379,7 +407,7 @@ export default function ClientApiTab() {
       title: 'Enviar mídia (imagem, vídeo, áudio ou documento)',
       description: 'Envia arquivos de mídia com caption opcional.',
       method: 'POST',
-      path: '/send/media',
+      path: '/send-media',
       icon: Image,
       color: 'green',
       features: [
@@ -498,7 +526,7 @@ export default function ClientApiTab() {
       title: 'Enviar menu interativo',
       description: 'Envia menus interativos: botões, listas, enquetes ou carrossel.',
       method: 'POST',
-      path: '/send/menu',
+      path: '/send-menu',
       icon: Send,
       color: 'purple',
       features: [
@@ -619,7 +647,7 @@ export default function ClientApiTab() {
       title: 'Enviar carrossel de mídia',
       description: 'Envia um carrossel com imagens e botões interativos.',
       method: 'POST',
-      path: '/send/carousel',
+      path: '/send-carousel',
       icon: Image,
       color: 'indigo',
       features: [
@@ -738,7 +766,7 @@ export default function ClientApiTab() {
       title: 'Enviar botão PIX',
       description: 'Envia um botão nativo do WhatsApp para pagamento PIX.',
       method: 'POST',
-      path: '/send/pix-button',
+      path: '/send-pix-button',
       icon: Send,
       color: 'green',
       features: [
@@ -842,7 +870,7 @@ export default function ClientApiTab() {
       title: 'Enviar Stories (Status)',
       description: 'Envia um story (status) com texto, imagem, vídeo ou áudio.',
       method: 'POST',
-      path: '/send/status',
+      path: '/send-status',
       icon: Send,
       color: 'orange',
       features: [
@@ -1278,8 +1306,8 @@ export default function ClientApiTab() {
                     </div>
                     <div className="bg-slate-50 px-4 py-3 border-t border-slate-200">
                       <div className="text-sm text-slate-700 font-mono">
-                        {displayApiUrl}{currentEndpoint.path}
-          </div>
+                        {buildEndpointUrl(currentEndpoint.path)}
+                      </div>
         </div>
       </div>
 
@@ -1807,7 +1835,7 @@ export default function ClientApiTab() {
 
                   <div className="bg-slate-900 rounded-xl p-5 border border-slate-700 relative shadow-lg">
                     <button
-                      onClick={() => copyToClipboard(`curl --request POST \\\n  --url ${displayApiUrl}${currentEndpoint.path} \\\n  --header 'Content-Type: application/json' \\\n  --header 'Authorization: Bearer ${SUPABASE_ANON_KEY?.substring(0, 30)}...' \\\n  --header 'token: seu_token_de_instancia' \\\n  --data '${JSON.stringify(currentEndpoint.exampleRequest, null, 2)}'`, 'curl-code')}
+                      onClick={() => copyToClipboard(`curl --request POST \\\n  --url ${buildEndpointUrl(currentEndpoint.path)} \\\n  --header 'Content-Type: application/json' \\\n  --header 'Authorization: Bearer ${SUPABASE_ANON_KEY?.substring(0, 30)}...' \\\n  --header 'token: seu_token_de_instancia' \\\n  --data '${JSON.stringify(currentEndpoint.exampleRequest, null, 2)}'`, 'curl-code')}
                       className="absolute top-3 right-3 p-2 hover:bg-slate-800 rounded-lg transition-colors"
                     >
                       {copiedEndpoint === 'curl-code' ? (
@@ -1818,7 +1846,7 @@ export default function ClientApiTab() {
                     </button>
                     <pre className="text-sm text-slate-100 font-mono whitespace-pre-wrap pr-12">
 {`curl --request POST \\
-  --url ${displayApiUrl}${currentEndpoint.path} \\
+  --url ${buildEndpointUrl(currentEndpoint.path)} \\
   --header 'Content-Type: application/json' \\
   --header 'Authorization: Bearer SUA_CHAVE_ANON' \\
   --header 'token: seu_token_de_instancia' \\
