@@ -1,7 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Smartphone, Activity as ActivityIcon, CheckCircle, XCircle } from 'lucide-react';
+import {
+  Smartphone,
+  Activity as ActivityIcon,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+  Search,
+  Plus,
+  Power,
+} from 'lucide-react';
 import type { Database } from '../lib/database.types';
 
 type WhatsAppInstance = Database['public']['Tables']['whatsapp_instances']['Row'];
@@ -10,6 +20,8 @@ export default function ClientDashboardTab() {
   const { user, profile } = useAuth();
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'connected' | 'connecting' | 'disconnected'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -19,6 +31,7 @@ export default function ClientDashboardTab() {
 
   async function loadInstances() {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('whatsapp_instances')
         .select('*')
@@ -34,118 +47,275 @@ export default function ClientDashboardTab() {
     }
   }
 
-  const connectedInstances = instances.filter(i => i.status === 'connected').length;
-  const disconnectedInstances = instances.filter(i => i.status === 'disconnected').length;
-  const connectingInstances = instances.filter(i => i.status === 'connecting').length;
+  const summary = useMemo(() => {
+    const connected = instances.filter((i) => i.status === 'connected').length;
+    const connecting = instances.filter((i) => i.status === 'connecting').length;
+    const disconnected = instances.filter((i) => i.status === 'disconnected').length;
+    const limit = profile?.max_instances ?? 0;
+    const usage = limit > 0 ? Math.round((instances.length / limit) * 100) : 0;
+
+    return {
+      total: instances.length,
+      connected,
+      connecting,
+      disconnected,
+      limit,
+      usage: Number.isFinite(usage) ? usage : 0,
+    };
+  }, [instances, profile]);
+
+  const filteredInstances = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return instances.filter((instance) => {
+      if (filterStatus !== 'all' && instance.status !== filterStatus) {
+        return false;
+      }
+
+      if (term) {
+        const haystack = `${instance.name} ${instance.phone_number ?? ''}`.toLowerCase();
+        if (!haystack.includes(term)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [instances, filterStatus, searchTerm]);
+
+  const handleRefresh = async () => {
+    await loadInstances();
+  };
+
+  const getStatusBadge = (status: WhatsAppInstance['status']) => {
+    switch (status) {
+      case 'connected':
+        return 'bg-emerald-100 text-emerald-700';
+      case 'connecting':
+        return 'bg-amber-100 text-amber-700';
+      default:
+        return 'bg-slate-100 text-slate-600';
+    }
+  };
+
+  const getStatusLabel = (status: WhatsAppInstance['status']) => {
+    switch (status) {
+      case 'connected':
+        return 'Conectada';
+      case 'connecting':
+        return 'Conectando';
+      default:
+        return 'Desconectada';
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-lg text-gray-600">Carregando...</div>
+        <div className="text-lg text-slate-500">Carregando suas instâncias...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-500 mt-1">Visão geral das suas instâncias</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Total de Instâncias</p>
-              <p className="text-3xl font-bold text-gray-900">{instances.length}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                de {profile?.max_instances || 0} disponíveis
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Smartphone className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+          <p className="text-slate-500 mt-1">Visão geral e status das suas instâncias conectadas.</p>
         </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Conectadas</p>
-              <p className="text-3xl font-bold text-green-600">{connectedInstances}</p>
-              <p className="text-xs text-gray-400 mt-1">instâncias ativas</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Desconectadas</p>
-              <p className="text-3xl font-bold text-gray-600">{disconnectedInstances}</p>
-              <p className="text-xs text-gray-400 mt-1">instâncias inativas</p>
-            </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-gray-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Conectando</p>
-              <p className="text-3xl font-bold text-yellow-600">{connectingInstances}</p>
-              <p className="text-xs text-gray-400 mt-1">em processo</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <ActivityIcon className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Atualizar
+          </button>
+          <button
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow shadow-blue-500/25 hover:shadow-md transition"
+          >
+            <Plus className="w-4 h-4" />
+            Nova Instância
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Instâncias Recentes</h3>
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-slate-400">Total de instâncias</p>
+          <div className="mt-2 flex items-end justify-between">
+            <span className="text-3xl font-semibold text-slate-800">{summary.total}</span>
+            <Smartphone className="w-5 h-5 text-blue-500" />
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            Limite contratado: {summary.limit || '—'} instâncias
+          </p>
+          <div className="mt-3">
+            <div className="h-2 w-full rounded-full bg-slate-100">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+                style={{ width: `${Math.min(summary.usage, 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.3em] text-slate-400">
+              {summary.usage}% do limite utilizado
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-emerald-500">Instâncias conectadas</p>
+          <div className="mt-2 flex items-end justify-between">
+            <span className="text-3xl font-semibold text-emerald-600">{summary.connected}</span>
+            <CheckCircle className="w-5 h-5 text-emerald-500" />
+          </div>
+          <p className="mt-2 text-xs text-emerald-600">
+            Sessões aprovadas e respondendo normalmente.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-amber-600">Conectando agora</p>
+          <div className="mt-2 flex items-end justify-between">
+            <span className="text-3xl font-semibold text-amber-600">{summary.connecting}</span>
+            <ActivityIcon className="w-5 h-5 text-amber-500" />
+          </div>
+          <p className="mt-2 text-xs text-amber-600">
+            Instâncias aguardando confirmação de pareamento.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-rose-600">Necessitam ação</p>
+          <div className="mt-2 flex items-end justify-between">
+            <span className="text-3xl font-semibold text-rose-600">{summary.disconnected}</span>
+            <XCircle className="w-5 h-5 text-rose-500" />
+          </div>
+          <p className="mt-2 text-xs text-rose-600">
+            Refaça o login ou verifique a sessão no dispositivo.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: 'all', label: 'Todas', color: 'bg-slate-200 text-slate-700' },
+              { id: 'connected', label: 'Conectadas', color: 'bg-emerald-100 text-emerald-700' },
+              { id: 'connecting', label: 'Conectando', color: 'bg-amber-100 text-amber-700' },
+              { id: 'disconnected', label: 'Desconectadas', color: 'bg-rose-100 text-rose-700' },
+            ].map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setFilterStatus(option.id as typeof filterStatus)}
+                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition ${
+                  filterStatus === option.id
+                    ? 'border-transparent bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow shadow-blue-500/20'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {option.label}
+                <span
+                  className={`inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full px-2 text-xs font-semibold ${
+                    filterStatus === option.id ? 'bg-white/25 text-white' : option.color
+                  }`}
+                >
+                  {option.id === 'all'
+                    ? summary.total
+                    : option.id === 'connected'
+                    ? summary.connected
+                    : option.id === 'connecting'
+                    ? summary.connecting
+                    : summary.disconnected}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nome ou número da instância"
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-600 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+          {filteredInstances.length === instances.length && !searchTerm
+            ? 'Exibindo todas as instâncias cadastradas.'
+            : `Exibindo ${filteredInstances.length} de ${instances.length} instâncias com os filtros aplicados.`}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Instâncias recentes</h3>
+            <p className="text-sm text-slate-500">
+              Sessões criadas ou atualizadas nos últimos acessos.
+            </p>
+          </div>
+          <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+            {filteredInstances.length} instâncias listadas
+          </span>
+        </div>
+
         {instances.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">Nenhuma instância criada ainda</p>
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 text-center">
+            <Smartphone className="w-12 h-12 text-slate-300 mb-3" />
+            <h4 className="text-base font-semibold text-slate-700 mb-1">
+              Nenhuma instância encontrada
+            </h4>
+            <p className="text-sm text-slate-500 max-w-sm">
+              Crie uma instância para começar a enviar mensagens e acompanhar o status por aqui.
+            </p>
+          </div>
+        ) : filteredInstances.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-12 text-center">
+            <Search className="w-12 h-12 text-slate-300 mb-3" />
+            <h4 className="text-base font-semibold text-slate-700 mb-1">
+              Nenhum resultado com os filtros atuais
+            </h4>
+            <p className="text-sm text-slate-500 max-w-sm">
+              Ajuste os filtros ou limpe a busca para ver outras instâncias.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {instances.slice(0, 5).map((instance) => (
+            {filteredInstances.slice(0, 8).map((instance) => (
               <div
                 key={instance.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 shadow-sm transition hover:bg-slate-50 md:flex-row md:items-center md:justify-between"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-green-600" />
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20">
+                    <Smartphone className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{instance.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {instance.phone_number || 'Sem número configurado'}
+                    <p className="text-sm font-semibold text-slate-900">{instance.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {instance.phone_number ?? 'Sem número configurado'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Atualizada em{' '}
+                      {new Date(instance.updated_at ?? instance.created_at ?? '').toLocaleString('pt-BR')}
                     </p>
                   </div>
                 </div>
-                <span
-                  className={`px-3 py-1 text-xs font-medium rounded-full ${
-                    instance.status === 'connected'
-                      ? 'bg-green-100 text-green-700'
-                      : instance.status === 'connecting'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {instance.status === 'connected'
-                    ? 'Conectado'
-                    : instance.status === 'connecting'
-                    ? 'Conectando'
-                    : 'Desconectado'}
-                </span>
+                <div className="flex flex-col-reverse gap-3 md:flex-row md:items-center md:gap-4">
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadge(instance.status)}`}>
+                    {getStatusLabel(instance.status)}
+                  </span>
+                  <button className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">
+                    <Power className="w-3.5 h-3.5" />
+                    Ações rápidas
+                  </button>
+                </div>
               </div>
             ))}
           </div>
