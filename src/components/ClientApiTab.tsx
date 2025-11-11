@@ -932,6 +932,23 @@ export default function ClientApiTab() {
   };
 
   const currentEndpoint = endpointData[selectedEndpoint];
+  const hasTestResponse = Boolean(testResponse);
+  const isTestError =
+    hasTestResponse &&
+    (testResponse.includes('"error"') || testResponse.includes('"Error"'));
+  const testResponseCardClass = !hasTestResponse
+    ? 'bg-slate-900 border border-slate-700'
+    : isTestError
+    ? 'bg-slate-900 border border-red-600/60'
+    : 'bg-slate-900 border border-emerald-600/60';
+  const testResponseBarClass = !hasTestResponse
+    ? 'bg-slate-600'
+    : isTestError
+    ? 'bg-red-500'
+    : 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500';
+  const testResponseTextClass = !hasTestResponse
+    ? 'text-slate-200'
+    : 'text-slate-100';
   
   // Verificação de segurança para evitar erros
   if (!currentEndpoint) {
@@ -1780,32 +1797,16 @@ export default function ClientApiTab() {
                 </button>
               )}
             </div>
-            <div className={`rounded-xl p-6 border-2 shadow-xl overflow-hidden relative ${
-              testResponse 
-                ? (testResponse.includes('"error"') || testResponse.includes('"Error"')
-                  ? 'bg-gradient-to-br from-red-950/80 via-red-900/60 to-slate-900 border-red-600/70'
-                  : 'bg-gradient-to-br from-green-950/50 via-emerald-900/40 to-slate-900 border-green-600/70')
-                : 'bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700'
-            }`}>
-              <div className={`absolute top-0 left-0 right-0 h-1.5 ${
-                testResponse
-                  ? (testResponse.includes('"error"') || testResponse.includes('"Error"')
-                    ? 'bg-gradient-to-r from-red-500 via-red-600 to-red-700'
-                    : 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500')
-                  : 'bg-slate-600'
-              }`}></div>
+            <div className={`rounded-xl p-6 border-2 shadow-xl overflow-hidden relative ${testResponseCardClass}`}>
+              <div className={`absolute top-0 left-0 right-0 h-1.5 ${testResponseBarClass}`}></div>
               <div className="relative max-h-96 overflow-y-auto pt-2">
-                {!testResponse ? (
+                {!hasTestResponse ? (
                   <div className="text-center py-16 text-slate-400">
                     <div className="text-lg font-semibold mb-2 text-slate-300">Nenhuma resposta ainda</div>
                     <div className="text-sm">Envie uma requisição para ver o resultado aqui</div>
                   </div>
                 ) : (
-                  <pre className={`text-base font-mono leading-relaxed whitespace-pre-wrap ${
-                    testResponse.includes('"error"') || testResponse.includes('"Error"')
-                      ? 'text-red-50'
-                      : 'text-green-50'
-                  }`}>
+                  <pre className={`text-base font-mono leading-relaxed whitespace-pre-wrap ${testResponseTextClass}`}>
                     <code className="block">
                       {(() => {
                         try {
