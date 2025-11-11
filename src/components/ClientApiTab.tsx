@@ -990,6 +990,28 @@ export default function ClientApiTab() {
   const tokenHeaderValue = testToken || 'seu_token_de_instancia';
   const sanitizedTokenHeaderValue = escapeForShellSingleQuotes(tokenHeaderValue);
 
+  const buildCurlCommand = (opts: { forCopy: boolean }) => {
+    const tokenValue = opts.forCopy ? sanitizedTokenHeaderValue : tokenHeaderValue;
+    const lines = [
+      `curl --request ${currentEndpoint.method}`,
+      `  --url ${buildEndpointUrl(currentEndpoint.path)}`,
+      `  --header 'Content-Type: application/json'`,
+    ];
+
+    if (requiresSupabaseAuth) {
+      const anonValue = SUPABASE_ANON_KEY ? `${SUPABASE_ANON_KEY.substring(0, 30)}...` : 'SUA_CHAVE_ANON';
+      lines.push(`  --header 'Authorization: Bearer ${anonValue}'`);
+    }
+
+    lines.push(`  --header 'token: ${tokenValue}'`);
+    lines.push(`  --data '${JSON.stringify(requestPayload, null, 2)}'`);
+
+    return lines.join(' \\\n');
+  };
+
+  const curlCommandForDisplay = buildCurlCommand({ forCopy: false });
+  const curlCommandForCopy = buildCurlCommand({ forCopy: true });
+
   useEffect(() => {
     const nextState: Record<string, boolean> = {};
     responseExamples.forEach((_, idx) => {
@@ -1841,7 +1863,7 @@ export default function ClientApiTab() {
 
                   <div className="bg-slate-900 rounded-xl p-5 border border-slate-700 relative shadow-lg">
                     <button
-                      onClick={() => copyToClipboard(`curl --request POST \\\n  --url ${buildEndpointUrl(currentEndpoint.path)} \\\n  --header 'Content-Type: application/json' \\\n  --header 'Authorization: Bearer ${SUPABASE_ANON_KEY?.substring(0, 30)}...' \\\n  --header 'token: ${sanitizedTokenHeaderValue}' \\\n  --data '${JSON.stringify(requestPayload, null, 2)}'`, 'curl-code')}
+                      onClick={() => copyToClipboard(curlCommandForCopy, 'curl-code')}
                       className="absolute top-3 right-3 p-2 hover:bg-slate-800 rounded-lg transition-colors"
                     >
                       {copiedEndpoint === 'curl-code' ? (
@@ -1851,12 +1873,7 @@ export default function ClientApiTab() {
                       )}
                     </button>
                     <pre className="text-sm text-slate-100 font-mono whitespace-pre-wrap pr-12">
-{`curl --request POST \\
-  --url ${buildEndpointUrl(currentEndpoint.path)} \\
-  --header 'Content-Type: application/json' \\
-  --header 'Authorization: Bearer SUA_CHAVE_ANON' \\
-  --header 'token: ${tokenHeaderValue}' \\
-  --data '${JSON.stringify(requestPayload, null, 2)}'`}
+{curlCommandForDisplay}
                     </pre>
               </div>
             </div>
