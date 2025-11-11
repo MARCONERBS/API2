@@ -611,25 +611,6 @@ export default function ClientActivityTab() {
               </div>
             )}
           </div>
-
-          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-indigo-700">Resiliência</h3>
-            <p className="mt-2 text-sm text-indigo-600 leading-relaxed">
-              As métricas são consolidadas em tempo real a partir do Worker no Cloudflare e das Edge Functions
-              do Supabase. Configure alertas de degradação para receber notificações quando a taxa de erros ultrapassar 5%.
-            </p>
-            <div className="mt-4 rounded-xl border border-indigo-200 bg-white/80 p-3 text-xs text-indigo-500 space-y-2">
-              <p className="font-semibold text-indigo-600 mb-1 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-indigo-500" />
-                Próximos passos sugeridos
-              </p>
-              <ul className="space-y-1 list-disc list-inside">
-                <li>Habilite alertas de limite em <code>/send/media</code> (maior latência média).</li>
-                <li>Revise parâmetros de rate-limit do Worker se o throughput crescer.</li>
-                <li>Implemente cache de respostas para endpoints idempotentes.</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
 
