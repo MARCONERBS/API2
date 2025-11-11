@@ -148,6 +148,84 @@ export default function ClientApiTab() {
     setTimeout(() => setCopiedEndpoint(null), 2000);
   };
 
+  const buildRequestPayload = (): Record<string, unknown> => {
+    switch (selectedEndpoint) {
+      case 'send-text':
+        return {
+          number: testNumber,
+          text: testMessage,
+        };
+      case 'send-media':
+        return {
+          number: testNumber,
+          type: mediaType,
+          file: mediaFile,
+          text: mediaCaption,
+          ...(mediaType === 'document' && docName ? { docName } : {}),
+        };
+      case 'send-menu': {
+        const choices = menuChoices
+          .split('\n')
+          .map((choice) => choice.trim())
+          .filter((choice) => choice !== '');
+
+        return {
+          number: testNumber,
+          type: menuType,
+          text: testMessage,
+          choices,
+          ...(footerText ? { footerText } : {}),
+          ...(menuType === 'list' && listButton ? { listButton } : {}),
+          ...(menuType === 'poll' && selectableCount ? { selectableCount } : {}),
+          ...(imageButton ? { imageButton } : {}),
+        };
+      }
+      case 'send-carousel':
+        return {
+          number: testNumber,
+          text: testMessage,
+          carousel: [
+            {
+              text: carouselItems,
+              image: carouselImage,
+              buttons: [
+                {
+                  id: buttonId,
+                  text: buttonText,
+                  type: buttonType,
+                },
+              ],
+            },
+          ],
+        };
+      case 'send-pix-button':
+        return {
+          number: testNumber,
+          pixType,
+          pixKey,
+          ...(pixName ? { pixName } : {}),
+        };
+      case 'send-status':
+        if (statusType === 'text') {
+          return {
+            type: statusType,
+            text: testMessage,
+            background_color: backgroundColor,
+            font,
+          };
+        }
+
+        return {
+          type: statusType,
+          ...(statusFile ? { file: statusFile } : {}),
+          ...(testMessage ? { text: testMessage } : {}),
+          ...(thumbnail && statusType === 'video' ? { thumbnail } : {}),
+        };
+      default:
+        return {};
+    }
+  };
+
   const handleTest = async () => {
     if (!testToken) {
       setTestResponse('{"error": "Token é obrigatório"}');
@@ -158,82 +236,7 @@ export default function ClientApiTab() {
     setTestResponse('');
 
     try {
-      let body: Record<string, unknown> = {};
-
-      // Construir body baseado no endpoint selecionado
-      switch (selectedEndpoint) {
-        case 'send-text':
-          body = {
-            number: testNumber,
-            text: testMessage,
-          };
-          break;
-        case 'send-media':
-          body = {
-            number: testNumber,
-            type: mediaType,
-            file: mediaFile,
-            text: mediaCaption,
-          };
-          if (mediaType === 'document') {
-            body.docName = docName;
-          }
-          break;
-        case 'send-menu':
-          body = {
-            number: testNumber,
-            type: menuType,
-            text: testMessage,
-            choices: menuChoices.split('\n').filter((choice) => choice.trim() !== ''),
-          };
-          if (footerText) body.footerText = footerText;
-          if (menuType === 'list' && listButton) body.listButton = listButton;
-          if (menuType === 'poll' && selectableCount) body.selectableCount = selectableCount;
-          if (imageButton) body.imageButton = imageButton;
-          break;
-        case 'send-carousel':
-          body = {
-            number: testNumber,
-            text: testMessage,
-            carousel: [
-              {
-                text: carouselItems,
-                image: carouselImage,
-                buttons: [
-                  {
-                    id: buttonId,
-                    text: buttonText,
-                    type: buttonType,
-                  },
-                ],
-              },
-            ],
-          };
-          break;
-        case 'send-pix-button':
-          body = {
-            number: testNumber,
-            pixType: pixType,
-            pixKey: pixKey,
-          };
-          if (pixName) body.pixName = pixName;
-          break;
-        case 'send-status':
-          // Status não requer número (é enviado para o próprio número conectado)
-          body = {
-            type: statusType,
-          };
-          if (statusType === 'text') {
-            body.text = testMessage;
-            body.background_color = backgroundColor;
-            body.font = font;
-          } else {
-            if (statusFile) body.file = statusFile;
-            if (testMessage) body.text = testMessage;
-            if (thumbnail) body.thumbnail = thumbnail;
-          }
-          break;
-      }
+      const body = buildRequestPayload();
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -979,6 +982,8 @@ export default function ClientApiTab() {
   const responseSignature = responseExamples
     .map((response, idx) => `${idx}-${response.status}-${response.label}`)
     .join('|');
+
+  const requestPayload = buildRequestPayload();
 
   useEffect(() => {
     const nextState: Record<string, boolean> = {};
@@ -1831,7 +1836,7 @@ export default function ClientApiTab() {
 
                   <div className="bg-slate-900 rounded-xl p-5 border border-slate-700 relative shadow-lg">
                     <button
-                      onClick={() => copyToClipboard(`curl --request POST \\\n  --url ${buildEndpointUrl(currentEndpoint.path)} \\\n  --header 'Content-Type: application/json' \\\n  --header 'Authorization: Bearer ${SUPABASE_ANON_KEY?.substring(0, 30)}...' \\\n  --header 'token: seu_token_de_instancia' \\\n  --data '${JSON.stringify(currentEndpoint.exampleRequest, null, 2)}'`, 'curl-code')}
+                      onClick={() => copyToClipboard(`curl --request POST \\\n  --url ${buildEndpointUrl(currentEndpoint.path)} \\\n  --header 'Content-Type: application/json' \\\n  --header 'Authorization: Bearer ${SUPABASE_ANON_KEY?.substring(0, 30)}...' \\\n  --header 'token: seu_token_de_instancia' \\\n  --data '${JSON.stringify(requestPayload, null, 2)}'`, 'curl-code')}
                       className="absolute top-3 right-3 p-2 hover:bg-slate-800 rounded-lg transition-colors"
                     >
                       {copiedEndpoint === 'curl-code' ? (
@@ -1846,7 +1851,7 @@ export default function ClientApiTab() {
   --header 'Content-Type: application/json' \\
   --header 'Authorization: Bearer SUA_CHAVE_ANON' \\
   --header 'token: seu_token_de_instancia' \\
-  --data '${JSON.stringify(currentEndpoint.exampleRequest, null, 2)}'`}
+  --data '${JSON.stringify(requestPayload, null, 2)}'`}
                     </pre>
                     <div className="mt-3 bg-slate-800/50 rounded-lg p-3 border border-slate-700">
                       <p className="text-xs text-slate-300 mb-1">
