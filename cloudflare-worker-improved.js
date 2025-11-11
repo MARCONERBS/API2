@@ -6,6 +6,7 @@
 // Variáveis disponíveis:
 // - SUPABASE_URL: URL do projeto Supabase
 // - SUPABASE_ANON_KEY: Chave anon do Supabase
+// - SUPABASE_SERVICE_KEY: Chave service_role do Supabase (usada para registrar métricas)
 // - DEBUG: 'true' para logs detalhados, 'false' para produção
 // - RATE_LIMIT: Limite de requisições por minuto (padrão: 1000)
 
@@ -331,15 +332,52 @@ async function checkRateLimit(request, token, rateLimitRequestsPerMinute, debugM
   }
 }
 
+async function logApiRequest({
+  supabaseUrl,
+  serviceKey,
+  payload,
+  debugMode,
+}) {
+  if (!serviceKey) {
+    if (debugMode) {
+      console.warn('[WARN] SUPABASE_SERVICE_KEY not configured; skipping API request logging');
+    }
+    return;
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/api_request_logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok && debugMode) {
+      console.error('[ERROR] Failed to log API request', response.status, await response.text());
+    }
+  } catch (error) {
+    if (debugMode) {
+      console.error('[ERROR] Exception while logging API request:', error);
+    }
+  }
+}
+
 /**
  * Handler principal das requisições
  * @param {Request} request - Requisição recebida
  * @param {Object} env - Variáveis de ambiente do Cloudflare
+ * @param {ExecutionContext} [ctx] - Contexto para executar tarefas assíncronas (waitUntil)
  */
-async function handleRequest(request, env = {}) {
+async function handleRequest(request, env = {}, ctx) {
   // Carregar configurações de variáveis de ambiente ou usar padrões
   const SUPABASE_URL = env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+  const SUPABASE_SERVICE_KEY = env.SUPABASE_SERVICE_KEY;
   const DEBUG_MODE = env.DEBUG !== undefined ? env.DEBUG === 'true' : DEFAULT_DEBUG_MODE;
   const RATE_LIMIT_REQUESTS_PER_MINUTE = parseInt(env.RATE_LIMIT || DEFAULT_RATE_LIMIT.toString());
   
@@ -785,6 +823,9 @@ async function handleRequest(request, env = {}) {
     }
     
     const edgeFunctionUrl = `${SUPABASE_URL}${functionPath}`;
+    const requestOrigin = request.headers.get('origin') || request.headers.get('referer') || url.origin;
+    const ipAddress = request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || null;
+    const requestStartTimestamp = Date.now();
     
     if (DEBUG_MODE) {
       console.log(`[DEBUG] Proxying to Edge Function: ${edgeFunctionUrl}`);
@@ -802,17 +843,33 @@ async function handleRequest(request, env = {}) {
       body: JSON.stringify(bodyData),
     });
     
+    const latencyMs = Date.now() - requestStartTimestamp;
+    
     // Log do status da resposta da Edge Function
     if (DEBUG_MODE || !response.ok) {
       console.log(`[INFO] Edge Function response - Status: ${response.status}, URL: ${edgeFunctionUrl}`);
     }
-
+    
     // Lê a resposta (só pode ler uma vez!)
     const responseData = await response.text();
+    
+    const baseLogPayload = {
+      endpoint: path,
+      method: request.method,
+      status_code: response.status,
+      latency_ms: latencyMs,
+      success: response.ok,
+      user_id: validation.instance.user_id,
+      instance_id: validation.instance.id,
+      error_message: null,
+      request_origin: requestOrigin,
+      ip_address: ipAddress,
+    };
     
     // Se a Edge Function retornou erro, loga detalhes
     if (!response.ok) {
       TOKEN_CACHE.delete(token);
+      baseLogPayload.error_message = responseData.substring(0, 500);
       
       // Se for 404, pode ser que a função não existe ou a URL está errada
       if (response.status === 404) {
@@ -824,6 +881,18 @@ async function handleRequest(request, env = {}) {
         // Retorna erro mais descritivo para 404
         try {
           const errorJson = JSON.parse(responseData);
+          baseLogPayload.error_message = errorJson.message || baseLogPayload.error_message;
+          const logPromise = logApiRequest({
+            supabaseUrl: SUPABASE_URL,
+            serviceKey: SUPABASE_SERVICE_KEY,
+            payload: baseLogPayload,
+            debugMode: DEBUG_MODE,
+          });
+          if (ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(logPromise);
+          } else {
+            await logPromise;
+          }
           return new Response(
             JSON.stringify({
               error: errorJson.message || 'Edge Function not found',
@@ -840,6 +909,17 @@ async function handleRequest(request, env = {}) {
             }
           );
         } catch (e) {
+          const logPromise = logApiRequest({
+            supabaseUrl: SUPABASE_URL,
+            serviceKey: SUPABASE_SERVICE_KEY,
+            payload: baseLogPayload,
+            debugMode: DEBUG_MODE,
+          });
+          if (ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(logPromise);
+          } else {
+            await logPromise;
+          }
           return new Response(
             JSON.stringify({
               error: 'Edge Function not found',
@@ -867,10 +947,24 @@ async function handleRequest(request, env = {}) {
     let responseJson;
     try {
       responseJson = JSON.parse(responseData);
+      if (!response.ok) {
+        baseLogPayload.error_message =
+          responseJson?.error || responseJson?.message || baseLogPayload.error_message;
+      }
     } catch (e) {
-      // Se não for JSON, retorna como texto (mas loga o erro)
       if (DEBUG_MODE) {
         console.warn(`[WARN] Edge Function returned non-JSON response: ${responseData.substring(0, 100)}`);
+      }
+      const logPromise = logApiRequest({
+        supabaseUrl: SUPABASE_URL,
+        serviceKey: SUPABASE_SERVICE_KEY,
+        payload: baseLogPayload,
+        debugMode: DEBUG_MODE,
+      });
+      if (ctx && typeof ctx.waitUntil === 'function') {
+        ctx.waitUntil(logPromise);
+      } else {
+        await logPromise;
       }
       return new Response(responseData, {
         status: response.status,
@@ -881,6 +975,18 @@ async function handleRequest(request, env = {}) {
       });
     }
 
+    const logPromise = logApiRequest({
+      supabaseUrl: SUPABASE_URL,
+      serviceKey: SUPABASE_SERVICE_KEY,
+      payload: baseLogPayload,
+      debugMode: DEBUG_MODE,
+    });
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(logPromise);
+    } else {
+      await logPromise;
+    }
+    
     // Adicionar headers de rate limit na resposta
     const responseHeaders = {
       ...corsHeaders,
@@ -889,7 +995,7 @@ async function handleRequest(request, env = {}) {
       'X-RateLimit-Remaining': rateLimit.remaining.toString(),
       'X-RateLimit-Reset': rateLimit.reset.toString(),
     };
-
+    
     return new Response(JSON.stringify(responseJson), {
       status: response.status,
       headers: responseHeaders,
@@ -920,7 +1026,7 @@ async function handleRequest(request, env = {}) {
 // Use esta versão para suportar variáveis de ambiente do Cloudflare
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request, env);
+    return handleRequest(request, env, ctx);
   }
 };
 

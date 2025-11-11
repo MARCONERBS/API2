@@ -43,9 +43,9 @@ type FailureLog = {
   id: string;
   endpoint: string;
   method: string;
-  statusCode: number;
+  status_code: number;
   message: string;
-  timestamp: string;
+  logged_at: string;
 };
 
 type MonitoringPayload = {
@@ -132,14 +132,14 @@ function createMockMonitoring(timeframe: Timeframe): MonitoringPayload {
       id: `mock-failure-${timeframe}-${idx}`,
       endpoint: endpoint.endpoint,
       method: endpoint.method,
-      statusCode,
+      status_code: statusCode,
       message:
         statusCode >= 500
           ? 'Erro interno no serviço upstream.'
           : statusCode === 429
           ? 'Limite de requisições excedido para o endpoint.'
           : 'Validação rejeitou o payload recebido.',
-      timestamp: new Date(Date.now() - timestampOffsetMinutes * 60 * 1000).toISOString(),
+      logged_at: new Date(Date.now() - timestampOffsetMinutes * 60 * 1000).toISOString(),
     };
   });
 
@@ -213,7 +213,7 @@ export default function ClientActivityTab() {
       });
       const { data: failuresData, error: failuresError } = await supabase.rpc('get_api_monitoring_failures', {
         timeframe,
-        limit: 6,
+        target_limit: 6,
       });
 
       if (summaryError || endpointsError) {
@@ -244,9 +244,9 @@ export default function ClientActivityTab() {
       if (options?.silent) {
         setRefreshing(false);
       } else {
-        setLoading(false);
-      }
+      setLoading(false);
     }
+  }
   };
 
   useEffect(() => {
@@ -292,7 +292,7 @@ export default function ClientActivityTab() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
+      <div>
           <h2 className="text-2xl font-bold text-slate-900">Monitoramento da API</h2>
           <p className="text-slate-500 mt-1">
             Acompanhe volume de requisições, erros e desempenho dos endpoints.
@@ -385,7 +385,7 @@ export default function ClientActivityTab() {
             <p className="mt-2 text-xs text-rose-600">
               Distribuição similar aos endpoints intensivos de mídia.
             </p>
-          </div>
+      </div>
 
           <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
             <div className="flex items-center justify-between">
@@ -402,8 +402,8 @@ export default function ClientActivityTab() {
             </div>
             <p className="mt-2 text-xs text-indigo-600">
               Pico observado: {formatLatency(summary.peakLatencyMs)}.
-            </p>
-          </div>
+          </p>
+        </div>
         </div>
       )}
 
@@ -416,14 +416,14 @@ export default function ClientActivityTab() {
             </span>
           </div>
 
-          <div className="space-y-4">
+        <div className="space-y-4">
             {endpointStats.map((endpoint) => (
               <div
                 key={endpoint.endpoint}
                 className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 hover:bg-slate-50 transition"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
+                    <div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-slate-600 border border-slate-200">
                         {endpoint.method}
@@ -436,7 +436,7 @@ export default function ClientActivityTab() {
                       {formatNumber(endpoint.totalRequests)} requisições •{' '}
                       {formatLatency(endpoint.averageLatencyMs)} em média • {endpoint.totalFailures} falhas
                     </p>
-                  </div>
+                    </div>
                   <span
                     className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                       endpoint.status === 'operational'
@@ -452,7 +452,7 @@ export default function ClientActivityTab() {
                       ? 'Degradação'
                       : 'Instável'}
                   </span>
-                </div>
+                    </div>
                 <div className="mt-3">
                   <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                     <span>Taxa de sucesso</span>
@@ -469,10 +469,10 @@ export default function ClientActivityTab() {
                       }`}
                       style={{ width: `${Math.min(endpoint.successRate, 100)}%` }}
                     />
-                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
           </div>
         </div>
 
@@ -539,14 +539,14 @@ export default function ClientActivityTab() {
                         {failure.method} {failure.endpoint}
                       </span>
                       <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-rose-600 border border-rose-200">
-                        {failure.statusCode}
+                        {failure.status_code}
                       </span>
                     </div>
                     <p className="mt-1 text-rose-600/80 leading-relaxed">{failure.message}</p>
                     <div className="mt-2 flex items-center justify-between text-xs text-rose-500">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        {formatRelativeTime(failure.timestamp)}
+                        {formatRelativeTime(failure.logged_at)}
                       </span>
                       <span>Evento {failure.id.slice(-4)}</span>
                     </div>
