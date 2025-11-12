@@ -1661,30 +1661,38 @@ export default function ClientApiTab() {
       )}
 
             {/* Authentication Section */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6 shadow-lg">
-              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center">
-                <Zap className="w-5 h-5 mr-2 text-blue-600" />
-                Autenticação
-              </h3>
-              <div className="space-y-3 text-sm text-slate-700">
-                <p className="font-semibold text-slate-800">Como obter seu token:</p>
-                <ol className="list-decimal list-inside space-y-2 ml-2">
-                  <li>Acesse a seção <strong>"Minhas Instâncias"</strong> no menu lateral</li>
-                  <li>Crie uma nova instância ou selecione uma existente</li>
-                  <li>Copie o <strong>token da instância</strong> (disponível apenas para instâncias conectadas)</li>
-                  <li>Use o token no header <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">token</code> de todas as requisições</li>
-                </ol>
-                <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
-                  <p className="font-semibold text-blue-900 mb-1">Exemplo de uso:</p>
-                  <code className="text-xs text-blue-800 block">
-                    --header 'token: seu_token_de_instancia'
-                  </code>
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-50 shadow-sm">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-indigo-500/5" />
+              <div className="relative p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
+                    <Zap className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Autenticação</h3>
+                    <p className="text-xs text-slate-500">Use o token da instância no header</p>
+                  </div>
                 </div>
-                <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-xs text-amber-800">
-                    <strong>⚠️ Importante:</strong> O token é único para cada instância e deve ser mantido em segurança. 
-                    Instâncias desconectadas não podem enviar mensagens.
-                  </p>
+                
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-slate-200 bg-white/80 p-4 backdrop-blur">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Header</span>
+                      <span className="text-xs font-mono text-slate-400">token</span>
+                    </div>
+                    <code className="block text-xs font-mono text-slate-700 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                      seu_token_de_instancia
+                    </code>
+                  </div>
+                  
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-50/50 border border-amber-200/50 p-3">
+                    <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                      <span className="text-[10px] font-bold text-amber-600">!</span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-amber-800">
+                      Token disponível apenas em instâncias conectadas
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
