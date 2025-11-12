@@ -1507,17 +1507,17 @@ export default function ClientApiTab() {
   }, [selectedEndpoint, responseSignature]);
 
   return (
-    <div className="flex h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="flex h-full bg-white">
       {/* Sidebar */}
-      <div className="w-80 bg-white/95 backdrop-blur border-r border-slate-200 overflow-y-auto shadow-lg">
-        <div className="sticky top-0 z-10 bg-white/95 border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-800 tracking-wide uppercase">Documentação</h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Explore os endpoints disponíveis e veja detalhes de requisição.
+      <div className="w-72 bg-slate-50 border-r border-slate-200 overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-6 py-5">
+          <h2 className="text-lg font-bold text-slate-900">API Reference</h2>
+          <p className="text-xs text-slate-500 mt-1.5">
+            Documentação completa da API
           </p>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="px-4 py-4 space-y-1">
           {endpoints.map((group) => {
             const isExpanded = expandedGroups.includes(group.id);
             const toggleGroup = () => {
@@ -1529,22 +1529,20 @@ export default function ClientApiTab() {
             };
 
             return (
-              <div key={group.id} className="space-y-2">
+              <div key={group.id} className="space-y-0.5">
                 <button
                   onClick={toggleGroup}
-                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-slate-700 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white hover:shadow transition-all duration-200 font-semibold"
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-7 h-7 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                     <span>{group.label}</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-600 bg-white px-2.5 py-1 rounded-full border border-slate-200">{group.count}</span>
+                  <span className="text-xs text-slate-400 bg-slate-200 px-2 py-0.5 rounded">{group.count}</span>
                 </button>
 
                 {isExpanded && group.children.length > 0 && (
-                  <div className="ml-2 mt-1 space-y-1.5">
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-slate-200 pl-3">
                     {group.children.map((child) => {
                       const childData = endpointData[child.id];
                       const isSelected = selectedEndpoint === child.id;
@@ -1553,34 +1551,25 @@ export default function ClientApiTab() {
                         <button
                           key={child.id}
                           onClick={() => setSelectedEndpoint(child.id)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all duration-200 ${
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-all ${
                             isSelected
-                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-lg shadow-blue-500/25'
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'text-slate-600 hover:bg-slate-100'
                           }`}
                         >
-                          <div>
-                            <span className={`block text-sm font-semibold ${isSelected ? 'text-white' : 'text-slate-700'}`}>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-sm font-medium truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>
                               {child.label}
-                            </span>
-                            <span className={`block text-xs font-mono mt-1 ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>
+                            </div>
+                            <div className={`text-xs font-mono mt-0.5 truncate ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
                               {childData.path}
-                            </span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <span
-                              className={`text-xs font-bold px-2.5 py-1 rounded-md ${
-                                isSelected ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-700'
-                              }`}
-                            >
-                              {child.method}
-                            </span>
-                            <ArrowRight
-                              className={`w-4 h-4 ${
-                                isSelected ? 'text-white' : 'text-blue-500'
-                              }`}
-                            />
-                          </div>
+                          <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            {child.method}
+                          </span>
                         </button>
                       );
                     })}
@@ -1593,87 +1582,82 @@ export default function ClientApiTab() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
-          <div className="px-8 py-6">
-            <div className="flex items-center gap-3 mb-3">
-              <span className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold ${
-                currentEndpoint.color === 'cyan' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 
-                currentEndpoint.color === 'green' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                currentEndpoint.color === 'purple' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                currentEndpoint.color === 'indigo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                currentEndpoint.color === 'orange' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-slate-50 text-slate-700 border border-slate-200'
+        <div className="sticky top-0 z-20 bg-white border-b border-slate-200">
+          <div className="px-10 py-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-semibold ${
+                currentEndpoint.method === 'POST' ? 'bg-blue-100 text-blue-700' : 
+                currentEndpoint.method === 'GET' ? 'bg-green-100 text-green-700' :
+                currentEndpoint.method === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
+                currentEndpoint.method === 'DELETE' ? 'bg-red-100 text-red-700' :
+                'bg-slate-100 text-slate-700'
               }`}>
                 {currentEndpoint.method}
               </span>
-              <code className="text-sm font-mono text-slate-600 bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
+              <code className="text-sm font-mono text-slate-500">
                 {currentEndpoint.path}
               </code>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">{currentEndpoint.title}</h1>
-            <p className="text-slate-600 text-sm leading-relaxed max-w-3xl">{currentEndpoint.description}</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-3">{currentEndpoint.title}</h1>
+            <p className="text-slate-600 text-base leading-relaxed max-w-4xl">{currentEndpoint.description}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-slate-200">
           {/* Left Column - Documentation */}
-          <div className="p-8 space-y-8 bg-white">
+          <div className="px-10 py-8 space-y-10">
             {/* Tokens Section */}
             {!loadingInstances && instances.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
-                <div className="bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-4 border-b border-emerald-400">
-                  <h3 className="font-bold text-white flex items-center">
-                    <Smartphone className="w-5 h-5 mr-2" />
-                    Tokens das Instâncias
-                  </h3>
-                </div>
-                <div className="p-6 space-y-4">
+              <div className="bg-slate-50 rounded-lg border border-slate-200 p-6">
+                <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4" />
+                  Instâncias Disponíveis
+                </h3>
+                <div className="space-y-3">
                   {instances.slice(0, 2).map((instance) => (
-                    <div key={instance.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{instance.name}</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    <div key={instance.id} className="bg-white rounded-lg border border-slate-200 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-slate-900">{instance.name}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                           instance.status === 'connected'
-                            ? 'bg-green-100 text-green-700'
+                            ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-slate-100 text-slate-600'
                         }`}>
                           {instance.status === 'connected' ? 'Conectada' : 'Desconectada'}
                         </span>
                       </div>
                       {instance.instance_token && instance.status === 'connected' && (
-                        <div className="bg-slate-50 rounded-lg p-3 flex items-center space-x-2 border border-slate-200">
-                          <code className="flex-1 text-xs text-slate-700 font-mono break-all">
-                        {instance.instance_token}
-                      </code>
-                      <button
-                        onClick={() => copyToClipboard(instance.instance_token!, `token-${instance.id}`)}
-                            className="p-1.5 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
-                      >
-                        {copiedEndpoint === `token-${instance.id}` ? (
-                          <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                              <Copy className="w-4 h-4 text-slate-500" />
-                        )}
-                      </button>
-                  </div>
-                )}
+                        <div className="flex items-center gap-2 mt-3">
+                          <code className="flex-1 text-xs text-slate-600 font-mono bg-slate-50 px-3 py-2 rounded border border-slate-200 break-all">
+                            {instance.instance_token}
+                          </code>
+                          <button
+                            onClick={() => copyToClipboard(instance.instance_token!, `token-${instance.id}`)}
+                            className="p-2 hover:bg-slate-100 rounded transition-colors"
+                          >
+                            {copiedEndpoint === `token-${instance.id}` ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-slate-400" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            )}
 
             {/* Features */}
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-              <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                Recursos
-              </h3>
-              <ul className="space-y-2.5">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Recursos</h3>
+              <ul className="space-y-3">
                 {currentEndpoint.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-sm text-slate-700">
-                    <div className="mt-1.5 flex h-1.5 w-1.5 shrink-0 items-center justify-center rounded-full bg-blue-500"></div>
+                  <li key={idx} className="flex items-start gap-3 text-sm text-slate-600">
+                    <div className="mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center rounded-full bg-blue-500"></div>
                     <span className="leading-relaxed">{feature}</span>
                   </li>
                 ))}
@@ -1682,32 +1666,28 @@ export default function ClientApiTab() {
 
             {/* Parameters */}
             <div>
-              <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                Parâmetros
-              </h3>
-              <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-6">Parâmetros</h3>
+              <div className="space-y-6">
                 {currentEndpoint.params.map((param) => (
-                  <div key={param.name} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+                  <div key={param.name} className="border-l-2 border-slate-200 pl-4">
                     <div className="flex items-start justify-between gap-4 mb-2">
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm font-mono font-semibold text-slate-900">{param.name}</code>
-                        {param.required && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-50 text-red-600 border border-red-200">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <code className="text-base font-mono font-semibold text-slate-900">{param.name}</code>
+                        {param.required ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                             obrigatório
                           </span>
-                        )}
-                        {!param.required && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-600">
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
                             opcional
                           </span>
                         )}
                       </div>
-                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono text-slate-600 bg-slate-100 border border-slate-200">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-mono text-slate-500 bg-slate-50 border border-slate-200">
                         {param.type}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed ml-0">{param.description}</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">{param.description}</p>
                   </div>
                 ))}
               </div>
@@ -1715,8 +1695,7 @@ export default function ClientApiTab() {
 
             {/* Example Response */}
             <div>
-              <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-6">
                 {responseExamples.length > 1 ? 'Respostas' : 'Resposta'}
               </h3>
               {responseExamples.length === 0 ? (
@@ -1747,10 +1726,9 @@ export default function ClientApiTab() {
                     return (
                       <div
                         key={copyKey}
-                        className={`rounded-xl border-2 shadow-xl overflow-hidden relative ${cardClass}`}
+                        className={`rounded-lg border overflow-hidden ${isError ? 'border-red-200 bg-red-50/30' : 'border-green-200 bg-green-50/30'}`}
                       >
-                        <div className={`absolute top-0 left-0 right-0 h-1.5 ${barClass}`}></div>
-                        <div className="flex items-start justify-between px-5 pt-4 pb-2 space-x-3">
+                        <div className="flex items-start justify-between p-4">
                           <button
                             type="button"
                             onClick={() =>
@@ -1759,43 +1737,41 @@ export default function ClientApiTab() {
                                 [responseKey]: !isExpanded,
                               }))
                             }
-                            className="flex items-center text-left space-x-3 group"
+                            className="flex items-center gap-3 text-left flex-1 group"
                           >
-                            <div className={`flex-shrink-0 rounded-full bg-white/10 p-1 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
-                              <ChevronRight className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                              <div className={`text-xs uppercase tracking-wide ${badgeClass}`}>{statusText}</div>
-                              <h4 className="text-white text-sm font-semibold mt-1 group-hover:underline">
+                            <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            <div className="flex-1">
+                              <div className={`text-xs font-semibold mb-1 ${isError ? 'text-red-600' : 'text-green-600'}`}>
+                                {statusText}
+                              </div>
+                              <h4 className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
                                 {response.label}
                               </h4>
                             </div>
                           </button>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() =>
-                                copyToClipboard(JSON.stringify(response.body, null, 2), copyKey)
-                              }
-                              className="flex items-center space-x-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-xs font-medium text-white"
-                              type="button"
-                            >
-                              {copiedEndpoint === copyKey ? (
-                                <>
-                                  <Check className="w-4 h-4 text-emerald-200" />
-                                  <span>Copiado!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-4 h-4 text-emerald-100" />
-                                  <span>Copiar</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(JSON.stringify(response.body, null, 2), copyKey)
+                            }
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 rounded-lg border border-slate-200 transition-colors text-xs font-medium text-slate-600"
+                            type="button"
+                          >
+                            {copiedEndpoint === copyKey ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-green-600" />
+                                <span>Copiado</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copiar</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                         {isExpanded && (
-                          <div className="px-5 pb-5 pt-1">
-                            <pre className={`text-sm md:text-base font-mono leading-relaxed overflow-x-auto ${textClass}`}>
+                          <div className="px-4 pb-4 pt-0">
+                            <pre className="bg-slate-900 rounded-lg p-4 text-sm font-mono text-slate-100 leading-relaxed overflow-x-auto">
                               <code className="block">
                                 {JSON.stringify(response.body, null, 2)}
                               </code>
@@ -1811,14 +1787,14 @@ export default function ClientApiTab() {
           </div>
 
           {/* Right Column - Try It / Code */}
-          <div className="bg-slate-50/50">
+          <div className="bg-slate-50">
             {/* Tabs */}
-            <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-white/95 backdrop-blur">
+            <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-white">
               <button
                 onClick={() => setActiveTab('try')}
-                className={`flex-1 px-6 py-4 text-sm font-semibold transition-all relative ${
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-all relative ${
                   activeTab === 'try'
-                    ? 'text-slate-900'
+                    ? 'text-slate-900 bg-slate-50'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -1829,9 +1805,9 @@ export default function ClientApiTab() {
               </button>
               <button
                 onClick={() => setActiveTab('code')}
-                className={`flex-1 px-6 py-4 text-sm font-semibold transition-all relative ${
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-all relative ${
                   activeTab === 'code'
-                    ? 'text-slate-900'
+                    ? 'text-slate-900 bg-slate-50'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -1842,7 +1818,7 @@ export default function ClientApiTab() {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-8">
               {activeTab === 'try' ? (
                 <div className="space-y-6">
                   {/* Form */}
