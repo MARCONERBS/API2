@@ -767,8 +767,15 @@ export default function ClientApiTab() {
         'Substituição automática de placeholders dinâmicos'
       ],
       params: [
-        { name: 'number', type: 'string', required: true, description: 'Número de telefone com código do país (ex: 5511999999999)' },
-        { name: 'text', type: 'string', required: true, description: 'Mensagem de texto a ser enviada' }
+        { name: 'number', type: 'string', required: true, description: 'Número de telefone com código do país, sem espaços ou caracteres especiais (ex: 5511999999999)' },
+        { name: 'text', type: 'string', required: true, description: 'Mensagem de texto a ser enviada. Suporta formatação básica e placeholders dinâmicos (ex: {{nome}})' },
+        { name: 'replyid', type: 'string', required: false, description: 'ID da mensagem para responder (formato: 3EB0538DA65A59F6D8A251)' },
+        { name: 'mentions', type: 'string', required: false, description: 'Números para mencionar, separados por vírgula (ex: 5511999999999,5511888888888)' },
+        { name: 'readchat', type: 'boolean', required: false, description: 'Marca a conversa como lida após o envio (padrão: false)' },
+        { name: 'readmessages', type: 'boolean', required: false, description: 'Marca as últimas mensagens recebidas como lidas (padrão: false)' },
+        { name: 'delay', type: 'number', required: false, description: 'Atraso em milissegundos antes do envio. Durante o atraso aparecerá "Digitando..." (padrão: 0)' },
+        { name: 'track_source', type: 'string', required: false, description: 'Origem do rastreamento da mensagem para analytics (ex: "chatwoot", "zapier")' },
+        { name: 'track_id', type: 'string', required: false, description: 'ID para rastreamento da mensagem. Aceita valores duplicados (ex: "msg_123456789")' }
       ],
       exampleRequest: {
         number: "5511999999999",
@@ -873,11 +880,18 @@ export default function ClientApiTab() {
         'Base64 ou URL para arquivo'
       ],
       params: [
-        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
-        { name: 'type', type: 'string', required: true, description: 'image, video, document, audio, myaudio, ptt, sticker' },
-        { name: 'file', type: 'string', required: true, description: 'URL ou base64 do arquivo' },
-        { name: 'text', type: 'string', required: false, description: 'Caption/legenda (aceita placeholders)' },
-        { name: 'docName', type: 'string', required: false, description: 'Nome do arquivo (apenas para documents)' }
+        { name: 'number', type: 'string', required: true, description: 'Número de telefone com código do país, sem espaços ou caracteres especiais (ex: 5511999999999)' },
+        { name: 'type', type: 'string', required: true, description: 'Tipo de mídia: image, video, document, audio, myaudio, ptt, sticker' },
+        { name: 'file', type: 'string', required: true, description: 'URL pública (https://) ou string base64 do arquivo. Formatos: JPG/PNG/GIF (imagem), MP4/AVI/MOV (vídeo), PDF/DOC/XLS (documento), MP3/WAV/OGG (áudio)' },
+        { name: 'text', type: 'string', required: false, description: 'Caption/legenda da mídia. Suporta formatação e placeholders dinâmicos (ex: {{nome}}). Máximo: 1024 caracteres' },
+        { name: 'docName', type: 'string', required: false, description: 'Nome do arquivo com extensão (obrigatório para type: document, ex: "relatorio.pdf")' },
+        { name: 'replyid', type: 'string', required: false, description: 'ID da mensagem para responder (formato: 3EB0538DA65A59F6D8A251)' },
+        { name: 'mentions', type: 'string', required: false, description: 'Números para mencionar, separados por vírgula (ex: 5511999999999,5511888888888)' },
+        { name: 'readchat', type: 'boolean', required: false, description: 'Marca a conversa como lida após o envio (padrão: false)' },
+        { name: 'readmessages', type: 'boolean', required: false, description: 'Marca as últimas mensagens recebidas como lidas (padrão: false)' },
+        { name: 'delay', type: 'number', required: false, description: 'Atraso em milissegundos antes do envio. Durante o atraso aparecerá "Digitando..." (padrão: 0)' },
+        { name: 'track_source', type: 'string', required: false, description: 'Origem do rastreamento da mensagem para analytics (ex: "chatwoot", "zapier")' },
+        { name: 'track_id', type: 'string', required: false, description: 'ID para rastreamento da mensagem. Aceita valores duplicados (ex: "msg_123456789")' }
       ],
       exampleRequest: {
         number: "5511999999999",
@@ -994,14 +1008,21 @@ export default function ClientApiTab() {
         'Suporte a imagens nos botões'
       ],
       params: [
-        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
-        { name: 'type', type: 'string', required: true, description: 'Tipo: button, list, poll, carousel' },
-        { name: 'text', type: 'string', required: true, description: 'Texto principal da mensagem' },
-        { name: 'choices', type: 'array', required: true, description: 'Array de opções (formato varia por tipo)' },
-        { name: 'footerText', type: 'string', required: false, description: 'Texto do rodapé (opcional)' },
-        { name: 'listButton', type: 'string', required: false, description: 'Texto do botão principal (para listas)' },
-        { name: 'selectableCount', type: 'number', required: false, description: 'Número de opções selecionáveis (para enquetes)' },
-        { name: 'imageButton', type: 'string', required: false, description: 'URL da imagem para botões' }
+        { name: 'number', type: 'string', required: true, description: 'Número de telefone com código do país, sem espaços ou caracteres especiais (ex: 5511999999999)' },
+        { name: 'type', type: 'string', required: true, description: 'Tipo de menu: button (botões), list (lista), poll (enquete), carousel (carrossel)' },
+        { name: 'text', type: 'string', required: true, description: 'Texto principal da mensagem. Suporta formatação e placeholders dinâmicos (ex: {{nome}})' },
+        { name: 'choices', type: 'array', required: true, description: 'Array de opções. Formato varia por tipo: button (["texto|id"]), list (["[Seção]", "item|id|desc"]), poll (["opção1", "opção2"]), carousel (["[Título]", "{imagem}", "botão"])' },
+        { name: 'footerText', type: 'string', required: false, description: 'Texto do rodapé exibido abaixo da mensagem principal (opcional para button e list)' },
+        { name: 'listButton', type: 'string', required: false, description: 'Texto do botão que abre a lista (obrigatório para type: list)' },
+        { name: 'selectableCount', type: 'number', required: false, description: 'Número máximo de opções selecionáveis (padrão: 1, apenas para type: poll)' },
+        { name: 'imageButton', type: 'string', required: false, description: 'URL pública (https://) ou base64 da imagem exibida acima dos botões (recomendado para type: button)' },
+        { name: 'replyid', type: 'string', required: false, description: 'ID da mensagem para responder (formato: 3EB0538DA65A59F6D8A251)' },
+        { name: 'mentions', type: 'string', required: false, description: 'Números para mencionar, separados por vírgula (ex: 5511999999999,5511888888888)' },
+        { name: 'readchat', type: 'boolean', required: false, description: 'Marca a conversa como lida após o envio (padrão: false)' },
+        { name: 'readmessages', type: 'boolean', required: false, description: 'Marca as últimas mensagens recebidas como lidas (padrão: false)' },
+        { name: 'delay', type: 'number', required: false, description: 'Atraso em milissegundos antes do envio. Durante o atraso aparecerá "Digitando..." (padrão: 0)' },
+        { name: 'track_source', type: 'string', required: false, description: 'Origem do rastreamento da mensagem para analytics (ex: "chatwoot", "zapier")' },
+        { name: 'track_id', type: 'string', required: false, description: 'ID para rastreamento da mensagem. Aceita valores duplicados (ex: "msg_123456789")' }
       ],
       exampleRequest: {
         number: "5511999999999",
@@ -1114,9 +1135,16 @@ export default function ClientApiTab() {
         'Múltiplos cartões em uma única mensagem'
       ],
       params: [
-        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
-        { name: 'text', type: 'string', required: true, description: 'Texto principal da mensagem' },
-        { name: 'carousel', type: 'array', required: true, description: 'Array de cartões do carrossel' }
+        { name: 'number', type: 'string', required: true, description: 'Número de telefone com código do país, sem espaços ou caracteres especiais (ex: 5511999999999)' },
+        { name: 'text', type: 'string', required: true, description: 'Texto principal da mensagem. Suporta formatação e placeholders dinâmicos (ex: {{nome}})' },
+        { name: 'carousel', type: 'array', required: true, description: 'Array de objetos com cartões do carrossel. Cada cartão deve ter: text (título/subtítulo), image (URL ou base64), buttons (array de botões com id, text, type: REPLY/URL/COPY/CALL)' },
+        { name: 'replyid', type: 'string', required: false, description: 'ID da mensagem para responder (formato: 3EB0538DA65A59F6D8A251)' },
+        { name: 'mentions', type: 'string', required: false, description: 'Números para mencionar, separados por vírgula (ex: 5511999999999,5511888888888)' },
+        { name: 'readchat', type: 'boolean', required: false, description: 'Marca a conversa como lida após o envio (padrão: false)' },
+        { name: 'readmessages', type: 'boolean', required: false, description: 'Marca as últimas mensagens recebidas como lidas (padrão: false)' },
+        { name: 'delay', type: 'number', required: false, description: 'Atraso em milissegundos antes do envio. Durante o atraso aparecerá "Digitando..." (padrão: 0)' },
+        { name: 'track_source', type: 'string', required: false, description: 'Origem do rastreamento da mensagem para analytics (ex: "chatwoot", "zapier")' },
+        { name: 'track_id', type: 'string', required: false, description: 'ID para rastreamento da mensagem. Aceita valores duplicados (ex: "msg_123456789")' }
       ],
       exampleRequest: {
         number: "5511999999999",
@@ -1233,10 +1261,16 @@ export default function ClientApiTab() {
         'Abertura direta no app de pagamento'
       ],
       params: [
-        { name: 'number', type: 'string', required: true, description: 'Número com código do país' },
-        { name: 'pixType', type: 'string', required: true, description: 'Tipo: CPF, CNPJ, PHONE, EMAIL, EVP' },
-        { name: 'pixKey', type: 'string', required: true, description: 'Valor da chave PIX' },
-        { name: 'pixName', type: 'string', required: false, description: 'Nome do recebedor (padrão: "Pix")' }
+        { name: 'number', type: 'string', required: true, description: 'Número de telefone com código do país, sem espaços ou caracteres especiais (ex: 5511999999999)' },
+        { name: 'pixType', type: 'string', required: true, description: 'Tipo de chave PIX: CPF (11 dígitos), CNPJ (14 dígitos), PHONE (formato: +5511999999999), EMAIL (email válido), EVP (chave aleatória UUID)' },
+        { name: 'pixKey', type: 'string', required: true, description: 'Valor da chave PIX conforme o tipo selecionado. Deve ser válido e formatado corretamente' },
+        { name: 'pixName', type: 'string', required: false, description: 'Nome do recebedor exibido no botão (padrão: "Pix"). Máximo: 25 caracteres' },
+        { name: 'replyid', type: 'string', required: false, description: 'ID da mensagem para responder (formato: 3EB0538DA65A59F6D8A251)' },
+        { name: 'readchat', type: 'boolean', required: false, description: 'Marca a conversa como lida após o envio (padrão: false)' },
+        { name: 'readmessages', type: 'boolean', required: false, description: 'Marca as últimas mensagens recebidas como lidas (padrão: false)' },
+        { name: 'delay', type: 'number', required: false, description: 'Atraso em milissegundos antes do envio. Durante o atraso aparecerá "Digitando..." (padrão: 0)' },
+        { name: 'track_source', type: 'string', required: false, description: 'Origem do rastreamento da mensagem para analytics (ex: "chatwoot", "zapier")' },
+        { name: 'track_id', type: 'string', required: false, description: 'ID para rastreamento da mensagem. Aceita valores duplicados (ex: "msg_123456789")' }
       ],
       exampleRequest: {
         number: "5511999999999",
@@ -1338,13 +1372,13 @@ export default function ClientApiTab() {
         'Múltiplas cores e fontes disponíveis'
       ],
       params: [
-        { name: 'type', type: 'string', required: true, description: 'Tipo: text, image, video, audio' },
-        { name: 'text', type: 'string', required: false, description: 'Texto principal ou legenda' },
-        { name: 'background_color', type: 'number', required: false, description: 'Código da cor de fundo (1-19)' },
-        { name: 'font', type: 'number', required: false, description: 'Estilo da fonte (0-8, apenas para text)' },
-        { name: 'file', type: 'string', required: false, description: 'URL ou Base64 do arquivo (obrigatório para image/video/audio)' },
-        { name: 'thumbnail', type: 'string', required: false, description: 'URL ou Base64 da miniatura (opcional para vídeos)' },
-        { name: 'mimetype', type: 'string', required: false, description: 'MIME type do arquivo (opcional)' }
+        { name: 'type', type: 'string', required: true, description: 'Tipo de status: text (texto com estilo), image (imagem com legenda), video (vídeo), audio (áudio ou mensagem de voz)' },
+        { name: 'text', type: 'string', required: false, description: 'Texto principal (obrigatório para type: text) ou legenda (opcional para image/video). Máximo: 139 caracteres para text' },
+        { name: 'background_color', type: 'number', required: false, description: 'Código da cor de fundo para texto (1-19). Exemplos: 1=azul, 7=verde, 13=roxo. Apenas para type: text' },
+        { name: 'font', type: 'number', required: false, description: 'Estilo da fonte para texto (0-8). Exemplos: 0=normal, 1=bold, 2=italic. Apenas para type: text' },
+        { name: 'file', type: 'string', required: false, description: 'URL pública (https://) ou string base64 do arquivo. Obrigatório para image/video/audio. Formatos: JPG/PNG (imagem), MP4 (vídeo), MP3/OGG (áudio)' },
+        { name: 'thumbnail', type: 'string', required: false, description: 'URL pública (https://) ou base64 da miniatura do vídeo (opcional, apenas para type: video). Recomendado: JPG/PNG' },
+        { name: 'mimetype', type: 'string', required: false, description: 'MIME type do arquivo (opcional). Exemplos: image/jpeg, video/mp4, audio/mpeg. Se não informado, será detectado automaticamente' }
       ],
       exampleRequest: {
         type: "text",
@@ -1625,6 +1659,35 @@ export default function ClientApiTab() {
           </div>
         </div>
       )}
+
+            {/* Authentication Section */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6 shadow-lg">
+              <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-blue-600" />
+                Autenticação
+              </h3>
+              <div className="space-y-3 text-sm text-slate-700">
+                <p className="font-semibold text-slate-800">Como obter seu token:</p>
+                <ol className="list-decimal list-inside space-y-2 ml-2">
+                  <li>Acesse a seção <strong>"Minhas Instâncias"</strong> no menu lateral</li>
+                  <li>Crie uma nova instância ou selecione uma existente</li>
+                  <li>Copie o <strong>token da instância</strong> (disponível apenas para instâncias conectadas)</li>
+                  <li>Use o token no header <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">token</code> de todas as requisições</li>
+                </ol>
+                <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
+                  <p className="font-semibold text-blue-900 mb-1">Exemplo de uso:</p>
+                  <code className="text-xs text-blue-800 block">
+                    --header 'token: seu_token_de_instancia'
+                  </code>
+                </div>
+                <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-xs text-amber-800">
+                    <strong>⚠️ Importante:</strong> O token é único para cada instância e deve ser mantido em segurança. 
+                    Instâncias desconectadas não podem enviar mensagens.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Features */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-lg">
