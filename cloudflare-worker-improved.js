@@ -828,39 +828,64 @@ async function handleRequest(request, env = {}, ctx) {
     }
     }
 
-    // Faz proxy para Edge Function do Supabase
-    // Normaliza o path para garantir que está correto
-    let functionPath = path;
-    if (functionPath.startsWith('/functions/v1/')) {
-      // Já tem o prefixo correto
-    } else if (functionPath.startsWith('/')) {
-      // Adiciona o prefixo se não tiver
-      functionPath = `/functions/v1${functionPath}`;
+    // Determina o destino do proxy baseado no tipo de endpoint
+    // Endpoints de instância e perfil vão para API externa
+    // Endpoints de envio (send-*) vão para Supabase Edge Functions
+    const isInstanceOrProfileEndpoint = path.startsWith('/instance/') || path.startsWith('/profile/');
+    const EXTERNAL_API_URL = 'https://sender.uazapi.com';
+    
+    let targetUrl;
+    const fetchHeaders = {
+      'token': token, // Passa o token para a API
+    };
+    
+    if (isInstanceOrProfileEndpoint) {
+      // Proxy para API externa (sender.uazapi.com)
+      targetUrl = `${EXTERNAL_API_URL}${path}`;
+      
+      // Headers para API externa
+      fetchHeaders['Accept'] = 'application/json';
+      
+      // Adiciona Content-Type apenas para métodos que podem ter body
+      if (request.method === 'POST' || request.method === 'PUT') {
+        fetchHeaders['Content-Type'] = 'application/json';
+      }
+      
+      if (DEBUG_MODE) {
+        console.log(`[DEBUG] Proxying to External API: ${targetUrl}`);
+      }
     } else {
-      functionPath = `/functions/v1/${functionPath}`;
+      // Proxy para Supabase Edge Functions
+      let functionPath = path;
+      if (functionPath.startsWith('/functions/v1/')) {
+        // Já tem o prefixo correto
+      } else if (functionPath.startsWith('/')) {
+        // Adiciona o prefixo se não tiver
+        functionPath = `/functions/v1${functionPath}`;
+      } else {
+        functionPath = `/functions/v1/${functionPath}`;
+      }
+      
+      targetUrl = `${SUPABASE_URL}${functionPath}`;
+      
+      // Headers específicos para Edge Functions
+      fetchHeaders['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`;
+      fetchHeaders['X-Instance-ID'] = validation.instance.id;
+      fetchHeaders['X-User-ID'] = validation.instance.user_id;
+      
+      // Adiciona Content-Type apenas para métodos que podem ter body
+      if (request.method === 'POST' || request.method === 'PUT') {
+        fetchHeaders['Content-Type'] = 'application/json';
+      }
+      
+      if (DEBUG_MODE) {
+        console.log(`[DEBUG] Proxying to Edge Function: ${targetUrl}`);
+      }
     }
     
-    const edgeFunctionUrl = `${SUPABASE_URL}${functionPath}`;
     const requestOrigin = request.headers.get('origin') || request.headers.get('referer') || url.origin;
     const ipAddress = request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || null;
     const requestStartTimestamp = Date.now();
-    
-    if (DEBUG_MODE) {
-      console.log(`[DEBUG] Proxying to Edge Function: ${edgeFunctionUrl}`);
-    }
-    
-    // Prepara headers e body baseado no método HTTP
-    const fetchHeaders = {
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'token': token, // Passa o token para a Edge Function
-      'X-Instance-ID': validation.instance.id, // ID da instância validada
-      'X-User-ID': validation.instance.user_id, // ID do usuário
-    };
-    
-    // Adiciona Content-Type apenas para métodos que podem ter body
-    if (request.method === 'POST' || request.method === 'PUT') {
-      fetchHeaders['Content-Type'] = 'application/json';
-    }
     
     // Prepara body apenas para métodos que podem ter body
     const fetchOptions = {
@@ -873,13 +898,13 @@ async function handleRequest(request, env = {}, ctx) {
       fetchOptions.body = JSON.stringify(bodyData);
     }
     
-    const response = await fetch(edgeFunctionUrl, fetchOptions);
+    const response = await fetch(targetUrl, fetchOptions);
     
     const latencyMs = Date.now() - requestStartTimestamp;
     
-    // Log do status da resposta da Edge Function
+    // Log do status da resposta
     if (DEBUG_MODE || !response.ok) {
-      console.log(`[INFO] Edge Function response - Status: ${response.status}, URL: ${edgeFunctionUrl}`);
+      console.log(`[INFO] API response - Status: ${response.status}, URL: ${targetUrl}`);
     }
     
     // Lê a resposta (só pode ler uma vez!)
@@ -898,17 +923,15 @@ async function handleRequest(request, env = {}, ctx) {
       ip_address: ipAddress,
     };
     
-    // Se a Edge Function retornou erro, loga detalhes
+    // Se a API retornou erro, loga detalhes
     if (!response.ok) {
       TOKEN_CACHE.delete(token);
       baseLogPayload.error_message = responseData.substring(0, 500);
       
-      // Se for 404, pode ser que a função não existe ou a URL está errada
+      // Se for 404, pode ser que o endpoint não existe ou a URL está errada
       if (response.status === 404) {
-        console.error(`[ERROR] Edge Function not found - URL: ${edgeFunctionUrl}, Path: ${path}, Original Path: ${url.pathname}, Function Path: ${functionPath}`);
-        
-        // Determina qual função foi solicitada baseado no path
-        const functionName = path.replace('/', '').replace('functions/v1/', '') || 'unknown';
+        const endpointName = path.replace('/', '').replace('functions/v1/', '') || 'unknown';
+        console.error(`[ERROR] Endpoint not found - URL: ${targetUrl}, Path: ${path}, Original Path: ${url.pathname}`);
         
         // Retorna erro mais descritivo para 404
         try {
@@ -927,13 +950,14 @@ async function handleRequest(request, env = {}, ctx) {
           }
           return new Response(
             JSON.stringify({
-              error: errorJson.message || 'Edge Function not found',
-              code: errorJson.code || 'FUNCTION_NOT_FOUND',
-              message: `The function '${functionName}' was not found. Please check if the function is deployed in Supabase.`,
-              requestedUrl: edgeFunctionUrl,
+              error: errorJson.message || 'Endpoint not found',
+              code: errorJson.code || 'ENDPOINT_NOT_FOUND',
+              message: isInstanceOrProfileEndpoint 
+                ? `The endpoint '${endpointName}' was not found in the external API.`
+                : `The function '${endpointName}' was not found. Please check if the function is deployed in Supabase.`,
+              requestedUrl: targetUrl,
               requestedPath: path,
-              functionName: functionName,
-              help: 'Available functions: send-text, send-media. Make sure the function is deployed in Supabase Edge Functions.'
+              endpointName: endpointName,
             }),
             {
               status: 404,
@@ -954,13 +978,14 @@ async function handleRequest(request, env = {}, ctx) {
           }
           return new Response(
             JSON.stringify({
-              error: 'Edge Function not found',
-              code: 'FUNCTION_NOT_FOUND',
-              message: `The function '${functionName}' was not found. Please check if the function is deployed in Supabase.`,
-              requestedUrl: edgeFunctionUrl,
+              error: 'Endpoint not found',
+              code: 'ENDPOINT_NOT_FOUND',
+              message: isInstanceOrProfileEndpoint
+                ? `The endpoint '${endpointName}' was not found in the external API.`
+                : `The function '${endpointName}' was not found. Please check if the function is deployed in Supabase.`,
+              requestedUrl: targetUrl,
               requestedPath: path,
-              functionName: functionName,
-              help: 'Available functions: send-text, send-media. Make sure the function is deployed in Supabase Edge Functions.'
+              endpointName: endpointName,
             }),
             {
               status: 404,
@@ -972,7 +997,7 @@ async function handleRequest(request, env = {}, ctx) {
       
       // Loga a resposta de erro para debugging (já temos responseData)
       if (DEBUG_MODE) {
-        console.error(`[ERROR] Edge Function error response: ${responseData.substring(0, 500)}`);
+        console.error(`[ERROR] API error response: ${responseData.substring(0, 500)}`);
       }
     }
     
@@ -985,7 +1010,7 @@ async function handleRequest(request, env = {}, ctx) {
       }
     } catch (e) {
       if (DEBUG_MODE) {
-        console.warn(`[WARN] Edge Function returned non-JSON response: ${responseData.substring(0, 100)}`);
+        console.warn(`[WARN] API returned non-JSON response: ${responseData.substring(0, 100)}`);
       }
       const logPromise = logApiRequest({
         supabaseUrl: SUPABASE_URL,

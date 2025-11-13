@@ -2185,7 +2185,7 @@ export default function ClientApiTab() {
   return (
     <div className="flex h-full bg-white">
       {/* Sidebar */}
-      <div className="w-72 bg-slate-50 border-r border-slate-200 overflow-y-auto">
+      <div className="w-80 bg-slate-50 border-r border-slate-200 overflow-y-auto">
         <div className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-6 py-5">
           <h2 className="text-lg font-bold text-slate-900">API Reference</h2>
           <p className="text-xs text-slate-500 mt-1.5">
