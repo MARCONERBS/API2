@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { MouseEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { whatsappApi } from '../services/whatsapp';
 import {
   Smartphone,
   Activity as ActivityIcon,
@@ -36,6 +37,165 @@ export default function ClientDashboardTab({ onRequestCreateInstance }: ClientDa
     if (user) {
       loadInstances();
     }
+  }, [user]);
+
+  // Helper function para determinar o status de conexão baseado na resposta da API
+  // Retorna: true (conectado), false (desconectado), null (indeterminado - não mudar status)
+  function getConnectionStatus(statusResponse: any): boolean | null {
+    const statusData = statusResponse?.status;
+    const instanceData = statusResponse?.instance;
+
+    // Verificar múltiplos campos que indicam conexão DEFINITIVA
+    // 1. loggedIn === true
+    if (statusData?.loggedIn === true) return true;
+    
+    // 2. connected === true
+    if (statusData?.connected === true) return true;
+    
+    // 3. Se tem JID válido, geralmente está conectado
+    if (statusData?.jid && typeof statusData.jid === 'string' && statusData.jid.includes('@')) {
+      return true;
+    }
+    
+    // 4. Se tem owner (número de telefone), indica conexão
+    if (instanceData?.owner && typeof instanceData.owner === 'string') {
+      return true;
+    }
+    
+    // 5. Se explicitamente DESCONECTADO (ambos false)
+    if (statusData?.loggedIn === false && statusData?.connected === false) {
+      return false;
+    }
+    
+    // 6. Se apenas um campo indica desconexão, verificar outros indicadores
+    if (statusData?.loggedIn === false || statusData?.connected === false) {
+      // Mas verificar se há outros indicadores de conexão
+      if (statusData?.jid || instanceData?.owner) {
+        return null; // Não sabemos, manter status atual
+      }
+      return false;
+    }
+    
+    // Se não conseguimos determinar (resposta vazia, estrutura diferente, etc)
+    // Retornar null para NÃO alterar o status atual
+    return null;
+  }
+
+  function extractPhoneNumber(status: any): string | null {
+    // Tenta extrair do jid primeiro (formato: "554799967404:70@s.whatsapp.net")
+    const jid = status?.status?.jid;
+    if (jid && typeof jid === 'string') {
+      const match = jid.match(/^(\d+):/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
+    // Tenta usar o owner (número sem código do país)
+    const owner = status?.instance?.owner;
+    if (owner && typeof owner === 'string') {
+      return owner;
+    }
+
+    return null;
+  }
+
+  // Sincronização periódica do status com a API
+  useEffect(() => {
+    if (!user) return;
+
+    // Verificar TODAS as instâncias para sincronizar status com a API
+    const checkInterval = setInterval(async () => {
+      try {
+        // Buscar todas as instâncias com token
+        const { data: allInstances, error } = await supabase
+          .from('whatsapp_instances')
+          .select('*')
+          .eq('user_id', user.id)
+          .not('instance_token', 'is', null);
+
+        if (error || !allInstances || allInstances.length === 0) {
+          return;
+        }
+
+        // Verificar cada instância e sincronizar status
+        for (const instance of allInstances) {
+          if (!instance.instance_token) continue;
+
+          try {
+            const status = await whatsappApi.getInstanceStatus(instance.instance_token);
+            const connectionStatus = getConnectionStatus(status);
+            const statusData = (status as any).status;
+            const phoneNumber = extractPhoneNumber(status);
+
+            // Se connectionStatus é null, não sabemos o status - NÃO alterar nada
+            if (connectionStatus === null) {
+              console.log(`[SYNC] Instância ${instance.name}: Status indeterminado na API - mantendo status atual: ${instance.status}`);
+              // Não fazemos nada - mantemos o status atual e continuamos para a próxima instância
+              continue;
+            }
+
+            const isConnectedInApi = connectionStatus === true;
+
+            // Se está conectado na API mas desconectado no banco, atualizar para conectado
+            if (isConnectedInApi && instance.status !== 'connected') {
+              await supabase
+                .from('whatsapp_instances')
+                .update({
+                  status: 'connected',
+                  phone_number: phoneNumber || instance.phone_number || null,
+                  qr_code: null,
+                  pairing_code: null,
+                  last_disconnect_reason: null,
+                  last_disconnect_at: null,
+                })
+                .eq('id', instance.id);
+
+              console.log(`[SYNC] Instância ${instance.name} está conectada na API - sincronizando banco`);
+              await loadInstances();
+            }
+            // Se está EXPLICITAMENTE desconectado na API mas conectado no banco, atualizar para desconectado
+            else if (!isConnectedInApi && instance.status === 'connected') {
+              await supabase
+                .from('whatsapp_instances')
+                .update({
+                  status: 'disconnected',
+                  last_disconnect_reason: statusData?.disconnectReason || 'Desconexão confirmada na API',
+                  last_disconnect_at: new Date().toISOString(),
+                  qr_code: null,
+                  pairing_code: null,
+                })
+                .eq('id', instance.id);
+
+              console.log(`[SYNC] Instância ${instance.name} desconectou na API - sincronizando banco`);
+              await loadInstances();
+            }
+            // Se ambos estão conectados, atualizar dados se necessário
+            else if (isConnectedInApi && instance.status === 'connected') {
+              const updates: any = {};
+              
+              if (phoneNumber && phoneNumber !== instance.phone_number) {
+                updates.phone_number = phoneNumber;
+              }
+
+              if (Object.keys(updates).length > 0) {
+                await supabase
+                  .from('whatsapp_instances')
+                  .update(updates)
+                  .eq('id', instance.id);
+              }
+            }
+          } catch (error: any) {
+            // Se houver erro, NÃO alteramos o status (API pode estar temporariamente indisponível)
+            console.warn(`[SYNC] Erro ao verificar instância ${instance.name} (mantendo status atual):`, error?.message || error);
+          }
+        }
+      } catch (error) {
+        console.error('[SYNC] Erro geral na sincronização:', error);
+      }
+    }, 30000); // Verificar a cada 30 segundos
+
+    return () => clearInterval(checkInterval);
   }, [user]);
 
   async function loadInstances() {

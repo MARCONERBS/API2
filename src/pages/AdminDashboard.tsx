@@ -28,13 +28,13 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="flex h-screen bg-gray-50">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <AdminTopBar />
 
-        <main className="p-8">
+        <main className={`flex-1 overflow-y-auto ${activeTab === 'api' ? '' : 'p-6'}`}>
           {renderContent()}
         </main>
       </div>
