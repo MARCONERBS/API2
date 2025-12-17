@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
+import ApiLandingPage from './pages/ApiLandingPage';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import ClientDashboard from './pages/ClientDashboard';
@@ -8,6 +9,7 @@ import ClientDashboard from './pages/ClientDashboard';
 function AppContent() {
   const { user, profile, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  const [showApiPage, setShowApiPage] = useState(false);
 
   if (loading) {
     return (
@@ -18,8 +20,11 @@ function AppContent() {
   }
 
   if (!user || !profile) {
+    if (showApiPage) {
+      return <ApiLandingPage onLogin={() => { setShowApiPage(false); setShowLogin(true); }} />;
+    }
     if (!showLogin) {
-      return <LandingPage onLogin={() => setShowLogin(true)} />;
+      return <LandingPage onLogin={() => setShowLogin(true)} onShowApi={() => setShowApiPage(true)} />;
     }
     return <Login />;
   }

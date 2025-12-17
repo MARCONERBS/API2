@@ -7,9 +7,10 @@ type SubscriptionPlan = Database['public']['Tables']['subscription_plans']['Row'
 
 interface LandingPageProps {
   onLogin: () => void;
+  onShowApi?: () => void;
 }
 
-export default function LandingPage({ onLogin }: LandingPageProps) {
+export default function LandingPage({ onLogin, onShowApi }: LandingPageProps) {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,12 +55,22 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             <div className="flex items-center space-x-3">
               <img src="/Logo_login.png" alt="EVA.Send" className="h-12 w-auto" />
             </div>
-            <button
-              onClick={onLogin}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Entrar
-            </button>
+            <div className="flex items-center gap-4">
+              {onShowApi && (
+                <button
+                  onClick={onShowApi}
+                  className="px-6 py-2.5 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  API
+                </button>
+              )}
+              <button
+                onClick={onLogin}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                Entrar
+              </button>
+            </div>
           </div>
         </header>
 
