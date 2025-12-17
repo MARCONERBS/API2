@@ -482,6 +482,11 @@ export default function ClientApiTab() {
     }
   }, [user]);
 
+  // Garantir que os grupos iniciem recolhidos
+  useEffect(() => {
+    setExpandedGroups([]);
+  }, []);
+
   const fetchInstances = async () => {
     if (!user || !user.id) return;
     try {
