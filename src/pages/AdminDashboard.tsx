@@ -4,6 +4,7 @@ import AdminTopBar from '../components/AdminTopBar';
 import AdminDashboardTab from '../components/AdminDashboardTab';
 import AdminUsersTab from '../components/AdminUsersTab';
 import AdminInstancesTab from '../components/AdminInstancesTab';
+import AdminPlansTab from '../components/AdminPlansTab';
 import ClientApiTab from '../components/ClientApiTab';
 import AdminSettingsTab from '../components/AdminSettingsTab';
 
@@ -18,6 +19,8 @@ export default function AdminDashboard() {
         return <AdminUsersTab />;
       case 'instances':
         return <AdminInstancesTab />;
+      case 'plans':
+        return <AdminPlansTab />;
       case 'api':
         return <ClientApiTab />;
       case 'settings':
@@ -28,13 +31,13 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="flex h-screen bg-gray-50">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <AdminTopBar />
 
-        <main className="p-8">
+        <main className={`flex-1 overflow-y-auto ${activeTab === 'api' ? '' : 'p-6'}`}>
           {renderContent()}
         </main>
       </div>
