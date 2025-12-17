@@ -1,4 +1,4 @@
-import { Users, LayoutDashboard, Smartphone, Settings, Code } from 'lucide-react';
+import { Users, LayoutDashboard, Smartphone, Settings, Code, Package } from 'lucide-react';
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -10,6 +10,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: AdminSidebarPro
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'users', label: 'Usuários', icon: Users },
     { id: 'instances', label: 'Instâncias', icon: Smartphone },
+    { id: 'plans', label: 'Planos', icon: Package },
     { id: 'api', label: 'Documentação API', icon: Code },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
@@ -63,6 +64,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: AdminSidebarPro
                         {tab.id === 'dashboard' && 'Visão'}
                         {tab.id === 'users' && 'Gestão'}
                         {tab.id === 'instances' && 'Monitor'}
+                        {tab.id === 'plans' && 'Assinaturas'}
                         {tab.id === 'api' && 'Docs'}
                         {tab.id === 'settings' && 'Sistema'}
                       </span>

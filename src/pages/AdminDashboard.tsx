@@ -4,6 +4,7 @@ import AdminTopBar from '../components/AdminTopBar';
 import AdminDashboardTab from '../components/AdminDashboardTab';
 import AdminUsersTab from '../components/AdminUsersTab';
 import AdminInstancesTab from '../components/AdminInstancesTab';
+import AdminPlansTab from '../components/AdminPlansTab';
 import ClientApiTab from '../components/ClientApiTab';
 import AdminSettingsTab from '../components/AdminSettingsTab';
 
@@ -18,6 +19,8 @@ export default function AdminDashboard() {
         return <AdminUsersTab />;
       case 'instances':
         return <AdminInstancesTab />;
+      case 'plans':
+        return <AdminPlansTab />;
       case 'api':
         return <ClientApiTab />;
       case 'settings':

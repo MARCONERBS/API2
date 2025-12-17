@@ -4,6 +4,7 @@ import ClientTopBar from '../components/ClientTopBar';
 import ClientDashboardTab from '../components/ClientDashboardTab';
 import ClientInstancesTab from '../components/ClientInstancesTab';
 import ClientActivityTab from '../components/ClientActivityTab';
+import ClientSubscriptionTab from '../components/ClientSubscriptionTab';
 import ClientApiTab from '../components/ClientApiTab';
 import ClientSettingsTab from '../components/ClientSettingsTab';
 
@@ -38,6 +39,7 @@ export default function ClientDashboard() {
             />
           )}
           {activeTab === 'activity' && <ClientActivityTab />}
+          {activeTab === 'subscription' && <ClientSubscriptionTab />}
           {activeTab === 'api' && <ClientApiTab />}
           {activeTab === 'settings' && <ClientSettingsTab />}
         </main>
