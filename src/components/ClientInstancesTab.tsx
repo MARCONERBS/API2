@@ -152,7 +152,7 @@ export default function ClientInstancesTab({ openCreate = false, onCloseCreate }
   // Verificação periódica do status de todas as instâncias conectadas
   // Helper function para determinar o status de conexão baseado na resposta da API
   // Retorna: true (conectado), false (desconectado), null (indeterminado - não mudar status)
-  // POLÍTICA: Ser MUITO CONSERVADOR - só retorna false se tiver ABSOLUTA CERTEZA
+  // POLÍTICA: Ser MUITO CONSERVADOR - só retorna true se tiver ABSOLUTA CERTEZA de conexão
   function getConnectionStatus(statusResponse: any, instanceName: string): boolean | null {
     const statusData = statusResponse?.status;
     const instanceData = statusResponse?.instance;
@@ -163,34 +163,66 @@ export default function ClientInstancesTab({ openCreate = false, onCloseCreate }
       return null;
     }
 
-    // INDICADORES DE CONEXÃO - Qualquer um desses indica que está conectado
+    // IMPORTANTE: Verificar primeiro os indicadores NEGATIVOS explícitos
+    // Se a API diz explicitamente que NÃO está conectado, devemos respeitar isso
+    const hasLoggedInFalse = statusData?.loggedIn === false;
+    const hasConnectedFalse = statusData?.connected === false;
+    const hasConnectedFalseRoot = statusResponse?.connected === false; // Pode estar no nível raiz também
+    
+    // Se a API diz explicitamente que está desconectado, verificar se há QR code (pode estar conectando)
+    const hasQrCode = (instanceData?.qrcode && instanceData.qrcode.length > 0) || 
+                     (statusResponse?.qrCode && statusResponse.qrCode.length > 0);
+    const hasPairingCode = (instanceData?.paircode && instanceData.paircode.length > 0) || 
+                          (statusResponse?.pairingCode && statusResponse.pairingCode.length > 0);
+    const isConnecting = instanceData?.status === 'connecting' || instanceData?.status === 'Connecting';
+    
+    // Se está explicitamente desconectado E não tem QR code/pairing code E não está em processo de conexão
+    // Então está realmente desconectado
+    if ((hasLoggedInFalse && hasConnectedFalse) || hasConnectedFalseRoot) {
+      if (!hasQrCode && !hasPairingCode && !isConnecting) {
+        console.log(`[STATUS_CHECK:${instanceName}] ❌ DESCONECTADO - API confirma desconexão (sem QR/pairing code)`);
+        return false;
+      }
+      // Se tem QR code ou está conectando, não está conectado ainda, mas também não está desconectado
+      // Retornar null para manter status atual
+      if (hasQrCode || hasPairingCode || isConnecting) {
+        console.log(`[STATUS_CHECK:${instanceName}] ⚠️ CONECTANDO - Tem QR/pairing code ou status="connecting"`);
+        return null; // Não está conectado, mas está em processo de conexão
+      }
+    }
+
+    // INDICADORES DE CONEXÃO - Só retornar true se tiver ABSOLUTA CERTEZA
     // Prioridade: verificar indicadores mais confiáveis primeiro
     const hasLoggedInTrue = statusData?.loggedIn === true;
     const hasConnectedTrue = statusData?.connected === true;
+    const hasConnectedTrueRoot = statusResponse?.connected === true; // Pode estar no nível raiz também
+    
+    // PRIORIDADE 1: loggedIn e connected são os mais confiáveis
+    // AMBOS devem ser true para considerar conectado
+    if ((hasLoggedInTrue && hasConnectedTrue) || hasConnectedTrueRoot) {
+      console.log(`[STATUS_CHECK:${instanceName}] ✅ CONECTADO - loggedIn=true E connected=true`);
+      return true;
+    }
+    
+    // PRIORIDADE 2: JID válido (só existe quando realmente conectado)
     const hasJid = statusData?.jid && typeof statusData.jid === 'string' && statusData.jid.includes('@');
+    if (hasJid) {
+      console.log(`[STATUS_CHECK:${instanceName}] ✅ CONECTADO - JID presente (indicador confiável)`);
+      return true;
+    }
+    
+    // PRIORIDADE 3: Indicadores secundários (menos confiáveis, mas ainda válidos)
     const hasOwner = instanceData?.owner && typeof instanceData.owner === 'string' && instanceData.owner.length > 0;
     const hasPhoneNumber = (instanceData?.phone_number && instanceData.phone_number.length > 0) || 
                           (statusData?.phone_number && statusData.phone_number.length > 0);
     const hasProfileName = instanceData?.profileName && typeof instanceData.profileName === 'string' && instanceData.profileName.length > 0;
-    // Verificação adicional: status como string "connected" no instanceData
     const hasStatusConnected = instanceData?.status === 'connected' || instanceData?.status === 'Connected';
     
-    // Se tem QUALQUER indicador positivo de conexão, está conectado
-    // PRIORIDADE: loggedIn e connected são os mais confiáveis
-    if (hasLoggedInTrue || hasConnectedTrue) {
-      console.log(`[STATUS_CHECK:${instanceName}] ✅ CONECTADO - loggedIn/connected = true`);
-      return true;
-    }
-    
-    // Se tem JID válido, está conectado (JID só existe quando conectado)
-    if (hasJid) {
-      console.log(`[STATUS_CHECK:${instanceName}] ✅ CONECTADO - JID presente`);
-      return true;
-    }
-    
-    // Se tem owner, phone_number, profileName ou status="connected", provavelmente está conectado
-    if (hasOwner || hasPhoneNumber || hasProfileName || hasStatusConnected) {
-      console.log(`[STATUS_CHECK:${instanceName}] ✅ CONECTADO - Indicadores secundários:`, {
+    // Só considerar conectado se tiver MÚLTIPLOS indicadores secundários (não apenas um)
+    // Isso evita falsos positivos
+    const secondaryIndicators = [hasOwner, hasPhoneNumber, hasProfileName, hasStatusConnected].filter(Boolean).length;
+    if (secondaryIndicators >= 2) {
+      console.log(`[STATUS_CHECK:${instanceName}] ✅ CONECTADO - Múltiplos indicadores secundários (${secondaryIndicators}):`, {
         hasOwner: !!hasOwner,
         hasPhoneNumber: !!hasPhoneNumber,
         hasProfileName: !!hasProfileName,
@@ -198,42 +230,17 @@ export default function ClientInstancesTab({ openCreate = false, onCloseCreate }
       });
       return true;
     }
-
-    // INDICADORES DE DESCONEXÃO - Ser MUITO CONSERVADOR
-    // Só retornamos false se tivermos ABSOLUTA CERTEZA
-    const hasLoggedInFalse = statusData?.loggedIn === false;
-    const hasConnectedFalse = statusData?.connected === false;
     
-    // Para marcar como DESCONECTADO, precisamos de:
-    // 1. Ambos campos explicitamente false (loggedIn E connected)
-    // 2. E não ter nenhum indicador positivo de conexão (verificado acima)
-    // 3. E não ter QR code ou pairing code (pode estar conectando)
-    // 4. E ter estrutura de resposta válida (statusData e instanceData existem)
-    const hasQrCode = (instanceData?.qrcode && instanceData.qrcode.length > 0) || 
-                     (statusResponse?.qrCode && statusResponse.qrCode.length > 0);
-    const hasPairingCode = (instanceData?.paircode && instanceData.paircode.length > 0) || 
-                          (statusResponse?.pairingCode && statusResponse.pairingCode.length > 0);
-    
-    // Só retornar false se TODAS as condições forem verdadeiras
-    if (hasLoggedInFalse && 
-        hasConnectedFalse && 
-        !hasQrCode && 
-        !hasPairingCode &&
-        statusData !== undefined && // Garantir que statusData existe
-        instanceData !== undefined && // Garantir que instanceData existe
-        !hasJid && // Garantir que não tem JID
-        !hasOwner && // Garantir que não tem owner
-        !hasPhoneNumber && // Garantir que não tem phone_number
-        !hasProfileName) { // Garantir que não tem profileName
-      
-      console.log(`[STATUS_CHECK:${instanceName}] ❌ DESCONECTADO - Confirmação absoluta (todos indicadores negativos)`);
-      return false;
+    // Se tem apenas um indicador secundário, não é suficiente para confirmar conexão
+    if (secondaryIndicators === 1) {
+      console.log(`[STATUS_CHECK:${instanceName}] ⚠️ INDETERMINADO - Apenas um indicador secundário (insuficiente para confirmar)`);
+      return null;
     }
     
     // IMPORTANTE: Se não temos certeza absoluta, retornamos null
-    // Isso faz com que o status atual seja mantido (especialmente se estiver como "connected")
-    // POLÍTICA: Em caso de dúvida, manter como conectado
-    console.log(`[STATUS_CHECK:${instanceName}] ⚠️ INDETERMINADO - Mantendo status atual (política conservadora)`);
+    // Isso faz com que o status atual seja mantido
+    // POLÍTICA: Em caso de dúvida, manter status atual (não assumir conectado)
+    console.log(`[STATUS_CHECK:${instanceName}] ⚠️ INDETERMINADO - Mantendo status atual (sem indicadores suficientes)`);
     return null;
   }
 
